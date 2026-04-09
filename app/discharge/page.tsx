@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { supabase } from "@/lib/supabase"
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter} from 'next/navigation'
 
 type PatientCardProps = {
   name: string
