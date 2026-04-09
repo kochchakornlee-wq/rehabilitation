@@ -1,6 +1,5 @@
 "use client"
 
-export const dynamic = "force-dynamic"
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
@@ -217,11 +216,6 @@ const handleSave = async () => {
     alert("เกิดข้อผิดพลาด: " + error.message)
   }
 }
-
-// รับจาก URL
-const searchParams = useSearchParams()
-const formType = searchParams.get("form_type") // "opd" | "ipd"
-const formId   = searchParams.get("form_id")
 
 
 
