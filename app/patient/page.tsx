@@ -57,24 +57,24 @@ export default function PatientForm() {
           
                 </nav>
           <div className='p-2'></div>
-          <div className="bg-white p-6 rounded-2xl shadow-md w-300 mx-auto text-blue-900">
+          <div className="bg-white p-6 rounded-2xl shadow-md w-300 mx-auto text-red-500">
 
             <h2 className="text-xl font-bold mb-4">{patient[0].name}</h2>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <p className="text-blue-900 font-bold">HN</p>
+              <p className="font-bold">HN</p>
               <p>{patient[0].HN}</p>
 
-              <p className="text-blue-900 font-bold">Date of Birth</p>
+              <p className="font-bold">Date of Birth</p>
               <p>{patient[0].birth}</p>
 
-              <p className="text-blue-900 font-bold">Admit</p>
+              <p className="font-bold">Admit</p>
               <p>{patient[0].admit}</p>
 
-              <p className="text-blue-900 font-bold">Gender</p>
+              <p className="font-bold">Gender</p>
               <p>{patient[0].gender}</p>
 
-              <p className="text-blue-900 font-bold">Allergies</p>
+              <p className="font-bold">Allergies</p>
               <p>{patient[0].allergies}</p>
             </div>
 

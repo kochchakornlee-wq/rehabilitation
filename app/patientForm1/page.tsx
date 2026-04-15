@@ -223,30 +223,9 @@ const treatmentSection: Section[] =[
   },
   {
     id: "am",
-    label: "Ambulance",
+    label: "Ambulation",
     type: "section",
-    subOptions: [],  // ← มี checkbox ย่อย
-    fields: ["with"]
-  },
-  {
-    id: "partial",
-    label: "Partial Weight Bearing",
-    type: "checkbox",
-    subOptions: [],  // ← มี checkbox ย่อย
-    fields: []
-  },
-  {
-    id: "Non",
-    label: "Non Weight Bearing",
-    type: "checkbox",
-    subOptions: [],  // ← มี checkbox ย่อย
-    fields: []
-  },
-  {
-    id: "full",
-    label: "Full Weight Bearing",
-    type: "checkbox",
-    subOptions: [],  // ← มี checkbox ย่อย
+    subOptions: ["Partial Weight Bearing", "Full Weight Bearing", "Non Weight Bearing"],
     fields: []
   },
   {
@@ -404,12 +383,14 @@ export default function PatientForm() {
       doctor: doctor1,
       diagnosis: diagnosis,
       pain_score: pain,
-      assessment: physicalExam,
+      assesment: physicalExam,
       fall_risk: fallRisk,
       fall_risk_items: Object.keys(fallChecked).filter((key) => fallChecked[key]),
       vn: vn,
       Transporation: transporation === "Other" ? otherTran : transporation,
-      underly: underlying === "Other" ? otherUnderly : underlying,
+      underly: underlying.includes("Other")
+      ? [...underlying.filter((v) => v !== "Other"), otherUnderly].filter(Boolean)
+      : underlying,
       vital_signs: {
         pr:   vitalData.pr,
         rr:   vitalData.rr,
@@ -420,7 +401,9 @@ export default function PatientForm() {
       Physio_precaution: physio,
       location: painLocation,
       pain_assesment: painAssesmentTool,
-      characteristic: characteristic === "Other" ? chaOther : characteristic,
+      characteristic: characteristic.includes("Other")
+      ? [...characteristic.filter((v) => v !== "Other"), chaOther].filter(Boolean)
+      : characteristic,
       Duration: duration,
       frequence: frequency,
       barthel: checkbarthel,
@@ -446,8 +429,6 @@ export default function PatientForm() {
 }
 
   const handleSaveAfter = async () => {
-  console.log("afterFallRisk:", afterfallrisk)  // ← เช็คว่ามีค่าไหม
-  console.log("afterPain:", afterpain)
 
   const { error } = await supabase.from("opd_forms").insert({
     hn: patient[0].HN,
@@ -467,12 +448,14 @@ export default function PatientForm() {
   },
   location: afterlocationpain,
   pain_assesment: afterpainAssesmentTool,
-  characteristic: aftercharacter === "Other" ? afterothercharacter : aftercharacter,
-  suggest: suggest,
+  characteristic: aftercharacter.includes("Other")
+    ? [...aftercharacter.filter((v) => v !== "Other"), afterothercharacter].filter(Boolean)
+    : aftercharacter,  suggest: suggest,
   status: discharge === "Other" ? otherDischarge : discharge,
   therapist: therapist,
   treatment_items: getTreatmentItems(),
   assesment: visited,
+  diagnosis: afterDiagnosis,
 
   // ถ้าอยากเก็บรายละเอียด subOptions และ fields ด้วย
   treatment_detail: treatmentSection
@@ -581,6 +564,8 @@ export default function PatientForm() {
       "ชรินดา ถาวรวรกุล",
 
     ]
+
+
     const goal =[
       {key: "short", label: "Short term goal"},
       {key: "long", label: "Long term goal"},
@@ -612,7 +597,7 @@ export default function PatientForm() {
     const [show2, setShow2] = useState(false)
     const filtered1 = doctorList.filter((item) => item.includes(doctor1))
     const filtered2 = doctorList.filter((item) => item.includes(doctor2))
-    const [transporation, setTransportation] = useState("")
+    const [transporation, setTransporation] = useState("")
     const option = ["walk", "wheelchair", "Stretcher", "Other"]
     const optionunderly: string[] = ["None", "Heart disease", "Cancer", "Diabetes Mellitus", "Hypertension", "Other"]
     const [vitalData, setVitalData] = useState<Record<string, string>>({
@@ -632,14 +617,16 @@ export default function PatientForm() {
     phisyo: "",
   })
   const [otherTran, setOtherTran] = useState("")
-  const [underlying, setUnderlying] = useState('')
   const [otherUnderly, setOtherUnderly] = useState("")
+  const [underlying, setUnderlying] = useState<string[]>([])
+  const [dropdownUnder, setDropdownUnder] = useState(false)
   const [pain, setPain] = useState("")
   const [painLocation, setPainLocation] = useState("")
   const painAssesment = ["Newborn - 1 year (NIPS)",">1-3 years (FLACC)", "3-8 years (FRS)", ">8 years (NRS)", "CPOT (Critical care Pain Observation Tool)"]
   const [painAssesmentTool, setPainAssesmentTool] = useState("")
   const cha = ["Prick", "Sharp", "Dull", "Burning", "Throbbing", "Tight", "Radiating", "Pin & Needles", "Other"]
-  const [characteristic, setCharacteristic] = useState("")
+  const [characteristic, setCharacteristic] = useState<string[]>([])
+  const [chaDropdown, setChaDropdown] = useState(false)
   const [chaOther, setChaOther] = useState("")
   const [duration, setDuration] = useState("")
   const frequencyOptions = ["Constant", "Intermittent"]
@@ -667,14 +654,21 @@ export default function PatientForm() {
   const [discharge,setDischarge] = useState("")
   const [otherDischarge, setOtherDischarge] = useState("")
   const [therapist,setTherapist] = useState("")
+  const [time2, setTime2] = useState("")
+  const therapistOption = doctorList.filter((name) => name.includes(therapist))
   const [afterdate, setAfterDate] = useState("")
   const [aftertime, setAfterTime] = useState("")
   const [afterfrequence, setAfterFrequence] = useState("")
   const [afterduration, setAfterDuration] = useState("")
   const [afterlocationpain, setAfterLocationPain] = useState("")
   const [afterpainAssesmentTool, setAfterPainAssesmentTool] = useState("")
-  const [aftercharacter, setAfterCharacter] = useState("")
+  const [aftercharacter, setAfterCharacter] = useState<string[]>([])
   const [afterothercharacter, setAfterOtherCharacter] = useState("")
+  const [afterDiagnosis, setAfterDiagnosis] = useState("")
+  const [showTherapist, setShowTherapist] = useState(false)
+  const filteredTherapist = doctorList.filter((item) =>
+  item.toLowerCase().includes(therapist.toLowerCase())
+)
   const getTreatmentItems = () => {
       return treatmentSection
         .filter((s) => checked[s.id])          // เฉพาะที่ติ้ก
@@ -700,7 +694,11 @@ export default function PatientForm() {
         })
 
     }
-
+    const ambWithOptions = ["Cane", "Crutches", "Walker", "Canadian Crutches", "Other"]
+    const [ambWith, setAmbWith] = useState<string[]>([])
+    const [ambWithOther, setAmbWithOther] = useState("")
+    const [ambWithDropdownOpen, setAmbWithDropdownOpen] = useState(false)
+    const [treatmentDetail, setTreatmentDetail] = useState("")
   useEffect(() => {
   const hasSurgery = surgeryItems.some((item) => fallChecked[item])   // ← fallChecked
 
@@ -737,7 +735,6 @@ export default function PatientForm() {
 }, [])
 
 useEffect(() => {
-  if (!isMounted) return
   if (activeTab !== "after") return
 
   const fetchBeforeData = async () => {
@@ -745,7 +742,7 @@ useEffect(() => {
 
     const { data, error } = await supabase
       .from("opd_forms")
-      .select("physical_exam, pain_score, fall_risk, Duration, visit_date, visit_time, frequence, location, pain_assesment, characteristic")
+      .select("physical_exam, pain_score, fall_risk, Duration, visit_date, visit_time, frequence, location, pain_assesment, characteristic, diagnosis, vital_signs, Transporation, underly, assesment")
       .eq("hn", patient[0].HN)
       .eq("type", "before")
       .eq("visit_date", today)
@@ -754,42 +751,78 @@ useEffect(() => {
       .maybeSingle()
 
     if (error) {
-      console.log("error:", error)
-    } else if (data) {
-      // ======================================
-      // ต้องเพิ่มตรงนี้ — ที่ลืมไป
-      // ======================================
-      setAfterfallrisk(data.fall_risk ?? "standard")
-      setAfterpain(data.pain_score ?? "")
-      setAfterDuration(data.Duration ?? "")
-      setAfterDate(data.visit_date?? "")
-      setAfterTime(data.visit_time?? "")
-      setAfterFrequence(data.frequence?? "")
-      setAfterLocationPain(data.location?? "")
-      setAfterPainAssesmentTool(data.pain_assesment?? "")
-      setAfterCharacter(data.characteristic?? "")
-      setAfterOtherCharacter(data.characteristic?? "")
+      console.log("fetch error:", error)
+      return
+    }
 
-      // physical_exam
-      const exam = data.physical_exam
+    if (!data) {
+      console.log("ไม่พบข้อมูล before ของวันนี้")
+      return
+    }
+    // ใน fetchBeforeData หลัง if (!data)
+    const vs = typeof data.vital_signs === "string"
+      ? JSON.parse(data.vital_signs)
+      : data.vital_signs ?? {}
+
+    setAftervitalData({
+      pr:   String(vs.pr   ?? ""),
+      rr:   String(vs.rr   ?? ""),
+      bp:   String(vs.bp   ?? ""),
+      spo2: String(vs.spo2 ?? ""),
+    })
+
+    console.log("vital_signs:", data.vital_signs)  // ← เช็คได้ว่าได้ค่ามาไหม
+
+    setAfterfallrisk(data.fall_risk ?? "standard")
+    setAfterpain(data.pain_score ?? "")
+    setAfterDuration(data.Duration ?? "")
+    setAfterDate(data.visit_date ?? "")
+    setAfterTime(data.visit_time ?? "")
+    setAfterFrequence(data.frequence ?? "")
+    setAfterLocationPain(data.location ?? "")
+    setAfterPainAssesmentTool(data.pain_assesment ?? "")
+    setAfterDiagnosis(data.diagnosis ?? "")
+    setAfterCharacter(
+      Array.isArray(data.characteristic)
+        ? data.characteristic
+        : typeof data.characteristic === "string" && data.characteristic !== ""
+          ? [data.characteristic]
+          : []
+    )
+    setAfterOtherCharacter(
+      typeof data.characteristic === "string" ? data.characteristic : ""
+    )
+
+    setTransporation(
+      typeof data.Transporation === "string" ? data.Transporation : ""
+    )
+
+    setUnderlying(
+      Array.isArray(data.underly)
+        ? data.underly
+        : typeof data.underly === "string" && data.underly !== ""
+          ? [data.underly]
+          : []
+    )
+
+    const exam = data.assesment
+    if (exam) {
       const restoredChecked: Record<string, boolean> = {}
       const restoredValues: Record<string, string> = {}
-
       sections.forEach((section) => {
         restoredChecked[section.id] = exam[section.id]?.checked ?? false
         section.fields.forEach((field) => {
-          restoredValues[`${section.id}-${field}`] =
-            exam[section.id]?.fields[field] ?? ""
+          restoredValues[`${section.id}-${field}`] = exam[section.id]?.fields?.[field] ?? ""
         })
       })
-
       setAfterChecked(restoredChecked)
       setAfterValue(restoredValues)
     }
   }
 
   fetchBeforeData()
-}, [activeTab]) 
+}, [activeTab])
+  // ← แค่ activeTab พอ ไม่ต้องมี isMounted
 
 
 
@@ -813,6 +846,12 @@ useEffect(() => {
   const chiefComplaintWords = [
   "Pain at", "Limit ROM at", "Secretion Retention", "Poor Ambulation",
   "Faired Ambulation", "Poor Ventilation", "Muscle Weakness",
+  "Right", "Left", "Both",
+  "Neck", "Shoulder", "Elbow", "Wrist", "Hand", "Finger",
+  "Hip", "Knee", "Ankle", "Chest", "Thigh", "Back", "Thorax", "Foot",
+]
+  const locationWords = [
+  "Pain at", "Limit ROM at", 
   "Right", "Left", "Both",
   "Neck", "Shoulder", "Elbow", "Wrist", "Hand", "Finger",
   "Hip", "Knee", "Ankle", "Chest", "Thigh", "Back", "Thorax", "Foot",
@@ -988,23 +1027,23 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
                 </a>
             </p>
             <p className ="p-2"></p>
-            <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-blue-900">
+            <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-red-500">
                 <h2 className="text-xl font-bold mb-4">{patient[0].name}</h2>
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                    <p className="text-blue-900 font-bold">HN</p>
+                    <p className="font-bold">HN</p>
                     <p>{patient[0].HN}</p>
 
-                    <p className="text-blue-900 font-bold">Date of Birth</p>
+                    <p className="font-bold">Date of Birth</p>
                     <p>{patient[0].birth}</p>
 
-                    <p className="text-blue-900 font-bold">Admit</p>
+                    <p className="font-bold">Admit</p>
                     <p>{patient[0].admit}</p>
 
-                    <p className="text-blue-900 font-bold">Gender</p>
+                    <p className="font-bold">Gender</p>
                     <p>{patient[0].gender}</p>
 
-                    <p className="text-blue-900 font-bold">Allergies</p>
+                    <p className="font-bold">Allergies</p>
                     <p>{patient[0].allergies}</p>
                 </div>
 
@@ -1050,7 +1089,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
 
               {activeTab === "before" && (
                 <div>
-                <div className='text-medium text-gray-500 p-2'>Diagnosis
+                <div className='text-medium text-red-500 p-2'>Diagnosis
                     <input
                         className="border border-gray-300 rounded-lg px-3 w-80 py-2 text-sm text-gray-500 ml-4 focus:outline-none focus:border-blue-400"
                         value={diagnosis}
@@ -1146,7 +1185,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
         <div className="flex items-end gap-7 mt-6 ml-4 w-full pr-4">
         {/* Date */}
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-medium text-gray-500">Date</label>
+          <label className="text-medium text-red-500">Date</label>
           <input
             type="date"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
@@ -1157,7 +1196,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
 
         {/* Time */}
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-medium text-gray-500">Time</label>
+          <label className="text-medium text-red-500">Time</label>
           <input
             type="time"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
@@ -1167,7 +1206,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
         </div>
         {/* VN */}
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-medium text-gray-500">VN</label>
+          <label className="text-medium text-red-500">VN</label>
           <input
             type="text"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
@@ -1177,7 +1216,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
         </div>
         {/* Doctor */}
         <div className="flex flex-col gap-1 flex-1 relative">  {/* ← เพิ่ม relative */}
-          <label className="text-medium text-gray-500">Doctor</label>
+          <label className="text-medium text-red-500">Doctor</label>
           <input
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
             value={doctor1}
@@ -1185,11 +1224,11 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
               setDoctor1(e.target.value)
               setShow1(true)
             }}
-            onBlur={() => setTimeout(() => setShow1(false), 150)}
+            //onBlur={() => setTimeout(() => setShow1(false), 150)}
           />
 
           {/* dropdown ลอยอยู่ใต้ input ไม่บัง */}
-          {show1 && doctor1 && filtered1.length > 0 && (
+          {/* {show1 && doctor1 && filtered1.length > 0 && (
             <div className="absolute top-full left-0 z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
               {filtered1.map((item) => (
                 <div
@@ -1210,7 +1249,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
             <div className="absolute top-full left-0 z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1">
               <div className="px-4 py-2 text-sm text-gray-400">ไม่พบข้อมูล</div>
             </div>
-          )}
+          )} */}
         </div>
 
       </div>
@@ -1226,13 +1265,13 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
               name="Transportation"
               value={option}
               checked={transporation === option}
-              onChange={(e) => setTransportation(e.target.value)}
+              onChange={(e) => setTransporation(e.target.value)}
               className='w-4 h-4 accent-blue-500'
               />
               <span className='text-sm text-gray-500'>{option}</span>
               {option === "Other" && transporation === "Other" && (
               <input
-                className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-blue-400 w-48"
+                className="border border-gray-300 text-gray-500 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-blue-400 w-48"
                 placeholder="โปรดระบุ..."
                 value={otherTran}
                 onChange={(e) => setOtherTran(e.target.value)}
@@ -1251,12 +1290,12 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
         {vitalSigns.map((item) => (
           <div key={item.key} className="flex flex-col gap-1">
 
-            <label className="text-medium text-gray-500">{item.label}</label>
+            <label className="text-medium text-red-500">{item.label}</label>
 
             <div className="flex items-center gap-2">
               <input
                 className="w-20 border border-gray-300 text-gray-500 w-full ml-6 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                value={vitalData[item.key as keyof typeof vitalData]}
+                value={vitalData[item.key] ?? ""}
                 onChange={(e) => setVitalData({ ...vitalData, [item.key]: e.target.value })}
               />
               <span className="text-sm text-gray-400">{item.unit}</span>
@@ -1295,27 +1334,57 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
     <div className="flex gap-6 mt-10 mx-auto w-full px-4">
 
   {/* Underlying Precaution */}
-    <div className="flex flex-col  gap-1">
+    <div className="flex flex-col gap-1">
       <label className="text-medium text-gray-500">Underlying Precaution</label>
-      <select
-        className="border border-gray-300 rounded-lg px-3 w-80 py-1.5 text-sm text-gray-500"
-        value={underlying}
-        onChange={(e) => {
-          setUnderlying(e.target.value)
-          setOtherUnderly("")
-        }}
-      >
-        <option value="">-- Select --</option>
-        {optionunderly.map((item) => (
-          <option key={item} value={item}>{item}</option>
-        ))}
-      </select>
 
-      {underlying === "Other" && (
+      {/* Trigger button */}
+      <div className="relative w-80">
+        <button
+          type="button"
+          className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-500 bg-white text-left flex justify-between items-center"
+          onClick={() => setDropdownUnder((prev) => !prev)}
+        >
+          <span className="truncate">
+            {underlying.length === 0
+              ? "-- Select --"
+              : underlying.join(", ")}
+          </span>
+          <span className="ml-2 text-gray-400">▾</span>
+        </button>
+
+        {/* Dropdown list */}
+        {dropdownUnder && (
+          <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-md max-h-48 overflow-y-auto">
+            {optionunderly.map((item) => (
+              <label
+                key={item}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={underlying.includes(item)}
+                  onChange={() => {
+                    setUnderlying((prev) =>
+                      prev.includes(item)
+                        ? prev.filter((v) => v !== item)  // ถ้ามีแล้ว → เอาออก
+                        : [...prev, item]                  // ถ้าไม่มี → เพิ่ม
+                    )
+                  }}
+                />
+                {item}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Other input */}
+      {underlying.includes("Other") && (
         <input
-          className="border border-gray-300 rounded-lg px-3 w-80 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+          className="border border-gray-300 rounded-lg px-3 w-80 py-1.5 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
           value={otherUnderly}
           onChange={(e) => setOtherUnderly(e.target.value)}
+          placeholder="Please specify..."
           autoFocus
         />
       )}
@@ -1334,12 +1403,13 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
 {/* Location of Pain */}
     <div className='flex flex-col gap-1 ml-12'>
       <label className='text-medium text-gray-500 '>Location of Pain</label>
-      <input
-        className="border border-gray-300 rounded-lg px-3 w-80 py-1.5 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
-
-        value={painLocation}
-        onChange={(e) => setPainLocation(e.target.value)}
-      />
+      <AutocompleteTextarea
+            value={painLocation}
+            onChange={setPainLocation}
+            wordBank={locationWords}
+            placeholder="พิมพ์เพื่อค้นหา..."
+            className="border border-gray-300 rounded-lg py-0.2 px-3 w-80 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
+          />
     </div>
     </div>
 
@@ -1359,23 +1429,60 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
       </select>
     </div>
 
-    <div className='flex flex-col gap-1 ml-17'>
-      <label className='text-medium text-gray-500'>Characteristic</label>
-      <select
-      className='border border-gray-300 rounded-lg text-sm w-80 text-gray-500 px-3 py-1.5'
-      value={characteristic}
-      onChange={(e)=> setCharacteristic(e.target.value)}>
-        <option value="">--- Select ---</option>
-        {cha.map((item) => (
-          <option key={item} value={item}>{item}</option>
-        ))}
-      </select>
-      {characteristic === "Other" &&
+    <div className="flex flex-col ml-17 gap-1">
+      <label className="text-medium text-gray-500">Characteris</label>
+
+      {/* Trigger button */}
+      <div className="relative w-80">
+        <button
+          type="button"
+          className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-500 bg-white text-left flex justify-between items-center"
+          onClick={() => setChaDropdown((prev) => !prev)}
+        >
+          <span className="truncate">
+            {characteristic.length === 0
+              ? "-- Select --"
+              : characteristic.join(", ")}
+          </span>
+          <span className="ml-2 text-gray-400">▾</span>
+        </button>
+
+        {/* Dropdown list */}
+        {chaDropdown && (
+          <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-md max-h-48 overflow-y-auto">
+            {cha.map((item) => (
+              <label
+                key={item}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={characteristic.includes(item)}
+                  onChange={() => {
+                    setCharacteristic((prev) =>
+                      prev.includes(item)
+                        ? prev.filter((v) => v !== item)  // ถ้ามีแล้ว → เอาออก
+                        : [...prev, item]                  // ถ้าไม่มี → เพิ่ม
+                    )
+                  }}
+                />
+                {item}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Other input */}
+      {characteristic.includes("Other") && (
         <input
-        className="border border-gray-300 w-80 rounded-lg text-sm text-gray-500 py-1.5 focus: outline-none focus:border-blue-400"
-        value={chaOther}
-        onChange={(e) => setChaOther(e.target.value)}
-        ></input>}
+          className="border border-gray-300 rounded-lg px-3 w-80 py-1.5 text-gray-500 text-sm focus:outline-none focus:border-blue-400"
+          value={chaOther}
+          onChange={(e) => setChaOther(e.target.value)}
+          placeholder="Please specify..."
+          autoFocus
+        />
+      )}
     </div> 
 
     <div className='flex flex-col gap-1 ml-17'>
@@ -1469,7 +1576,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
 
     <div className='flex gap-1 w-full items-end p-4 pr-4'>
       <div className='flex flex-col w-full mt-10'>
-        <label className='text-medium text-gray-500'>Treatment Plan</label>
+        <label className='text-medium text-red-500'>Treatment Plan</label>
         <div className='flex items-center gap-2'>
         <AutocompleteTextarea
             value={treatment}
@@ -1488,7 +1595,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
         <label className="text-medium text-gray-500">Participatory Goal Setting</label>
 
         <div className='flex flex-col gap-2'>
-          <label className="text-medium text-gray-500 mt-4">Short term goal</label>
+          <label className="text-medium text-red-500 mt-4">Short term goal</label>
         <AutocompleteTextarea
             value={shortgoal}
             onChange={setShortGoal}
@@ -1503,10 +1610,8 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
       </div>
       <div className="flex gap-1 w-full pl-4">
       <div className="flex flex-col mt-10 w-full">
-        <label className="text-medium text-gray-500">Participatory Goal Setting</label>
-
         <div className='flex flex-col gap-2'>
-          <label className="text-medium text-gray-500 mt-4">Long term goal</label>
+          <label className="text-medium text-red-500 mt-4">Long term goal</label>
         <AutocompleteTextarea
             value={longGoal}
             onChange={setLongGoal}
@@ -1595,13 +1700,62 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
                         {checked[section.id] && activeSection === section.id && section.type === "section" && (
                           <div className="bg-blue-600 w-50 rounded-xl px-4 py-1.5 flex flex-col gap-3">
 
-                            {/* Sub checkboxes — แสดงถ้ามี */}
+                            {/* ====== Ambulation: with dropdown อยู่บนสุด ====== */}
+                            {section.id === "am" && (
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  className="w-full bg-blue-500 border border-blue-400 rounded-lg px-3 py-1.5 text-sm text-left text-white placeholder-blue-200 focus:outline-none focus:border-white flex justify-between items-center"
+                                  onClick={() => setAmbWithDropdownOpen((p) => !p)}
+                                >
+                                  <span className="truncate">
+                                    {ambWith.length === 0 ? "with..." : ambWith.join(", ")}
+                                  </span>
+                                  <span className="ml-1 text-blue-200">▾</span>
+                                </button>
+
+                                {ambWithDropdownOpen && (
+                                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                                    {ambWithOptions.map((opt) => (
+                                      <label
+                                        key={opt}
+                                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={ambWith.includes(opt)}
+                                          onChange={() =>
+                                            setAmbWith((prev) =>
+                                              prev.includes(opt)
+                                                ? prev.filter((v) => v !== opt)
+                                                : [...prev, opt]
+                                            )
+                                          }
+                                        />
+                                        {opt}
+                                      </label>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {ambWith.includes("Other") && (
+                                  <input
+                                    className="mt-1 w-full bg-blue-500 border border-blue-400 rounded-lg px-3 py-1.5 text-sm text-white placeholder-blue-200 focus:outline-none focus:border-white"
+                                    placeholder="ระบุ..."
+                                    value={ambWithOther}
+                                    onChange={(e) => setAmbWithOther(e.target.value)}
+                                    autoFocus
+                                  />
+                                )}
+                              </div>
+                            )}
+
+                            {/* ====== Sub checkboxes — เรียงแนวตั้งถ้าเป็น am ====== */}
                             {section.subOptions && section.subOptions.length > 0 && (
-                              <div className="flex gap-4">
+                              <div className={section.id === "am" ? "flex flex-col gap-2" : "flex gap-4"}>
                                 {section.subOptions.map((sub) => {
                                   const subKey = `${section.id}-${sub}`
                                   const isSubChecked = subChecked[subKey] ?? false
-
                                   return (
                                     <label
                                       key={sub}
@@ -1624,7 +1778,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
                               </div>
                             )}
 
-                            {/* Input fields */}
+                            {/* ====== Fields ปกติ (ไม่ใช่ am) ====== */}
                             {section.fields.map((field) => (
                               <input
                                 key={field}
@@ -1646,8 +1800,8 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
                 <div className='text-base text-gray-500 p-2'>Diagnosis
                     <input
                         className="border border-gray-300 rounded-lg px-3 w-80 py-2 text-sm text-gray-500 ml-4 focus:outline-none focus:border-blue-400"
-                        value={diagnosis}
-                        onChange={(e) => setDiagnosis(e.target.value)}
+                        value={afterDiagnosis}
+                        onChange={(e) => setAfterDiagnosis(e.target.value)}
                         // // ======================================
                         // // onChange — ทุกครั้งที่พิมพ์ เรียก handleInput
                         // // e.target.value คือค่าที่พิมพ์ล่าสุด
@@ -1661,7 +1815,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
 
           // isChecked — ดูว่า section นี้ติ๊กอยู่ไหม
           // ถ้า undefined ให้ถือว่า false
-          const isChecked = checked[section.id] ?? false
+          const isChecked = afterchecked[section.id] ?? false
 
           return (
             <div key={section.id}>
@@ -1738,7 +1892,17 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
             </div>
           )
         })}
+
+    
     <div className='border-b-2 border-gray-300 mt-7 mb-10'></div>
+    <div className="mt-10 flex flex-col gap-4 p-4">
+      <label className='text-gray-500 text-medium'>Treatment Detail</label>
+      <textarea
+        value={treatmentDetail}
+        onChange={(e) => setTreatmentDetail(e.target.value)}
+        className="border border-gray-300 text-gray-500 w-full rounded-lg px-3 py-3 text-sm focus:outline-none focus:border-blue-500 resize-none"
+      />
+    </div>
     <label className='text-gray-500 text-medium ml-4'>Re-assessment</label>
       <div className="flex items-end gap-7 mt-10 ml-4 w-full pr-4">
         <div className="flex items-end gap-7 w-1/2 pr-4">
@@ -1787,7 +1951,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
             <div className="flex items-center gap-2">
               <input
                 className="w-20 border border-gray-300 text-gray-500 w-full ml-6 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                value={aftervitalData[item.key as keyof typeof aftervitalData]}
+                value={aftervitalData[item.key] ?? ""}
                 onChange={(e) => setAftervitalData({ ...aftervitalData, [item.key]: e.target.value })}
               />
               <span className="text-sm text-gray-400">{item.unit}</span>
@@ -1829,24 +1993,61 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
         ))}
       </select></div>
 
-      <div className='flex flex-col gap-1 ml-4 flex-1'>
-      <label className='text-medium text-gray-500'>Characteristic</label>
-      <select
-      className='border border-gray-300 rounded-lg text-sm text-gray-500 px-3 py-1.5'
-      value={aftercharacter}
-      onChange={(e)=> setAfterCharacter(e.target.value)}>
-        <option value="">--- Select ---</option>
-        {cha.map((item) => (
-          <option key={item} value={item}>{item}</option>
-        ))}
-      </select>
-      {characteristic === "Other" &&
-        <input
-        className="border border-gray-300 rounded-lg text-sm text-gray-500 py-1.5 focus: outline-none focus:border-blue-400"
-        value={afterothercharacter}
-        onChange={(e) => setAfterOtherCharacter(e.target.value)}
-        ></input>}
-    </div>
+      <div className="flex flex-col gap-1">
+        <label className="text-medium text-gray-500">Characteris</label>
+
+        {/* Trigger button */}
+        <div className="relative w-80">
+          <button
+            type="button"
+            className="w-58 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-500 bg-white text-left flex justify-between items-center"
+            onClick={() => setChaDropdown((prev) => !prev)}
+          >
+            <span className="truncate">
+              {aftercharacter.length === 0
+                ? "-- Select --"
+                : aftercharacter.join(", ")}
+            </span>
+            <span className="ml-2 text-gray-400">▾</span>
+          </button>
+
+          {/* Dropdown list */}
+          {chaDropdown && (
+            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-md max-h-48 overflow-y-auto">
+              {cha.map((item) => (
+                <label
+                  key={item}
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={aftercharacter.includes(item)}
+                    onChange={() => {
+                      setAfterCharacter((prev) =>
+                        prev.includes(item)
+                          ? prev.filter((v) => v !== item)  // ถ้ามีแล้ว → เอาออก
+                          : [...prev, item]                  // ถ้าไม่มี → เพิ่ม
+                      )
+                    }}
+                  />
+                  {item}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Other input */}
+        {characteristic.includes("Other") && (
+          <input
+            className="border border-gray-300 rounded-lg px-3 w-60 py-1.5 text-gray-500 text-sm focus:outline-none focus:border-blue-400"
+            value={chaOther}
+            onChange={(e) => setChaOther(e.target.value)}
+            placeholder="Please specify..."
+            autoFocus
+          />
+        )}
+      </div> 
     </div>
           </div>
           
@@ -1868,6 +2069,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
               </label>
             ))}
             </div>
+
             <div className='flex gap-4 mt-10'>
             <div className="flex flex-col mt-10 ml-4 mr-4">
               <label className='text-gray-500 text-medium'>คำแนะนำที่ได้รับ</label>
@@ -1899,14 +2101,63 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
               onChange={(e) => setOtherDischarge(e.target.value)}
               ></input>}
             </div>
-            <div className='flex flex-col mt-10'>
-              <label className='text-gray-500 text-medium ml-5'>PhysioTherapist</label>
+
+
+            <div className="flex flex-col gap-1 flex-1 mt-12 relative">  {/* ← เพิ่ม relative */}
+              <label className="text-sm text-gray-500">PhysioTherapist</label>
               <input
-              className='border border-lg rounded-lg text-gray-500 w-80 mt-2 ml-5 text-sm py-1.5 border-gray-300 focus:outline-none focus:border-blue-500'
-              value={therapist}
-              onChange={(e) => setTherapist(e.target.value)}></input>
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
+                value={therapist}
+                onChange={(e) => {
+                setTherapist(e.target.value)
+                setShowTherapist(true)
+              }}
+                // onBlur={() => setTimeout(() => setShowTherapist(false), 150)}
+              />
+
+                {showTherapist && therapist && filteredTherapist.length > 0 && (
+                <div className="absolute top-full left-0 z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                  {filteredTherapist.map((item) => (
+                    <div
+                      key={item}
+                      className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer"
+                      onClick={() => {
+                        setTherapist(item)
+                        setShowTherapist(false)
+                      }}
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              )}
               
+
+                </div>
+
+                </div>
+
+            <div className='flex w-full mt-10 ml-4'>
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-sm text-gray-500">Date</label>
+                <input
+                  type="date"
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
+                  value={afterdate}
+                  onChange={(e) => setAfterDate(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 flex-1 ml-4 pr-4">
+              <label className="text-sm text-gray-500">Time</label>
+              <input
+                type="time"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400"
+                value={time2}
+                onChange={(e) => setTime2(e.target.value)}
+              />
             </div>
+              
             </div>
 
             <div className='flex justify-end'>
@@ -1914,7 +2165,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
               suppressHydrationWarning
               type="button"
               onClick={handleSaveAfter}
-              className={`font-medium text-sm px-6 py-2 rounded-lg mt-4 border hover:bg-blue-700 cursor-pointer cursor transition-colors ${
+              className={`font-medium text-sm px-6 py-2 rounded-lg mt-10 border hover:bg-blue-700 cursor-pointer cursor transition-colors ${
                 !isMounted  // ← เพิ่มบรรทัดนี้
                   ? "bg-gray-200 text-gray-500 border-gray-300"  // default ก่อน mount
                   : activeTab === "after"

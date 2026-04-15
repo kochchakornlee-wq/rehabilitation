@@ -31,6 +31,112 @@ const doctorList = [
 
     ]
 
+
+function AutocompleteTextarea({
+  value,
+  onChange,
+  wordBank,
+  placeholder = "",
+  className = "",
+}: {
+  value: string
+  onChange: (val: string) => void
+  wordBank: string[]
+  placeholder?: string
+  className?: string
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)  // ← track ว่า highlight อยู่ที่ไหน
+
+  const getLastSegment = (text: string) => {
+    // แยกด้วย comma หรือ newline — เอาส่วนสุดท้าย
+    const parts = text.split(/,|\n/)
+    return parts[parts.length - 1].trim()
+  }
+
+  const updateSuggestions = (text: string) => {
+    const lastSeg = getLastSegment(text)
+    if (lastSeg.length >= 1) {
+      const filtered = wordBank.filter((w) =>
+        w.toLowerCase().startsWith(lastSeg.toLowerCase())
+      )
+      setSuggestions(filtered)
+      setShowDropdown(filtered.length > 0)
+    } else {
+      setSuggestions([])
+      setShowDropdown(false)
+    }
+    setActiveIndex(-1)  // reset highlight ทุกครั้งที่พิมพ์
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newVal = e.target.value
+    onChange(newVal)
+    updateSuggestions(newVal)
+  }
+
+  const handleSelect = (word: string) => {
+    // แทนที่ segment สุดท้ายด้วยคำที่เลือก แล้วต่อท้ายด้วย ", " 
+    const parts = value.split(/,|\n/)
+    parts[parts.length - 1] = word
+    const newVal = parts.join(", ") + ", "  // ← เว้นให้พิมพ์ต่อได้เลย
+    onChange(newVal)
+    // อัปเดต suggestions สำหรับคำถัดไป (หลัง ", " segment ใหม่ว่างเปล่า)
+    updateSuggestions(newVal)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showDropdown) return
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setActiveIndex((prev) => (prev + 1) % suggestions.length)
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setActiveIndex((prev) => (prev <= 0 ? suggestions.length - 1 : prev - 1))
+    } else if (e.key === "Enter") {
+      e.preventDefault()  // ไม่ให้ขึ้นบรรทัดใหม่
+      if (activeIndex >= 0) {
+        handleSelect(suggestions[activeIndex])
+      }
+    } else if (e.key === "Escape") {
+      setShowDropdown(false)
+      setActiveIndex(-1)
+    }
+  }
+
+  return (
+    <div className="relative w-full">
+      <textarea
+        className={className}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+        placeholder={placeholder}
+      />
+      {showDropdown && (
+        <ul className="absolute z-50 left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {suggestions.map((s, i) => (
+            <li
+              key={s}
+              onMouseDown={() => handleSelect(s)}
+              className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
+                i === activeIndex
+                  ? "bg-blue-500 text-white"        // ← highlight อันที่เลือกอยู่
+                  : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+              }`}
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export default function Discharge() {
     const router = useRouter()
     const [date, setDate] = useState("")
@@ -49,6 +155,7 @@ export default function Discharge() {
     const [short,setShort] = useState("")
     const [long, setLong] = useState("")
     const [Assessor, setAssessor] = useState("")
+    
     const inTime = [
         {key : "done", label: "ครบกำหนดการรักษา"},
         {key: "not finished", label: "ไม่ครบกำหนดการรักษา"},
@@ -135,7 +242,7 @@ useEffect(() => {
     const [opdResult, ipdResult] = await Promise.all([
       supabase
         .from("opd_forms")
-        .select("short_goal, long_goal, created_at")
+        .select("short_goal, long_goal, created_at, physical_exam, visit_date, visit_time, doctor")
         .eq("hn", patient1[0].HN)
         .eq("type", "before")        // ← เพิ่มบรรทัดนี้
         .order("created_at", { ascending: false })
@@ -144,7 +251,7 @@ useEffect(() => {
 
       supabase
         .from("ipd_forms")
-        .select("short_goal, long_goal, created_at")
+        .select("short_goal, long_goal, created_at, physical_exam, visit_date, visit_time, doctor")
         .eq("hn", patient1[0].HN)
         .eq("type", "before")        // ← เพิ่มบรรทัดนี้ (ถ้า ipd มี type เหมือนกัน)
         .order("created_at", { ascending: false })
@@ -152,10 +259,11 @@ useEffect(() => {
         .maybeSingle(),
     ])
 
-    const opd = opdResult.data
-    const ipd = ipdResult.data
+const opd = opdResult.data
+const ipd = ipdResult.data
 
-    let source = null
+
+let source = null
     if (opd && ipd) {
       source = new Date(opd.created_at) > new Date(ipd.created_at) ? opd : ipd
     } else {
@@ -163,9 +271,19 @@ useEffect(() => {
     }
 
     if (source) {
-      setShort(source.short_goal ?? "")
-      setLong(source.long_goal ?? "")
-    }
+  setShort(source.short_goal ?? "")
+  setLong(source.long_goal ?? "")
+
+  // ดึง visit count
+  const visitRaw = source.physical_exam as string ?? ""
+  const planValue = visitRaw.split("/")?.[1] ?? ""
+  setPlan(planValue)
+
+  // ดึงวันที่ เวลา หมอ
+  setDate(source.visit_date ?? "")
+  setTime(source.visit_time ?? "")
+  setDoctor(source.doctor ?? "")  // หรือ doctor แล้วแต่ชื่อ column
+}
   }
 
   fetchGoals()
@@ -217,6 +335,20 @@ const handleSave = async () => {
   }
 }
 
+const shortGoalWords = [
+  "Pain Relief ≤ 2 within", "Improve Ambulation within", "Increase ROM within",
+  "Secretion Clearance within", "Correct Gait Pattern within",
+  "Improve Ventilation within", "Normal ADL within", "Normal lung function within",
+  "Improve Breathing pattern within", "Increase muscle power within",
+  "Maintain ROM without pain", "Maintain muscle power within",
+  "Prevent complication within",
+]
+
+const longGoalWords = [
+  "Normal ADL", "Normal lung function", "Normal Ambulation",
+  "Pain Relief", "Full ROM", "Increase muscle power",
+  "Prevent complication",
+]
 
 
   
@@ -234,7 +366,7 @@ const handleSave = async () => {
               </p>
         
               {/* Patient Info Card */}
-              <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-blue-900">
+              <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-red-500">
                 <h2 className="text-xl font-bold mb-4">{patient1[0].name}</h2>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <p className="font-bold">HN</p>            <p>{patient1[0].HN}</p>
@@ -303,19 +435,23 @@ const handleSave = async () => {
                 </div>
                 <div className="flex flex-col p-4">
                         <label className="text-medium text-gray-500">Short term goal</label>
-                        <textarea
-                        className="border border-gray-300 px-3 py-3 rounded text-gray-500 text-sm focus:outline-none focus:border-blue-400 w-full"
-                        value={short}
-                        onChange={(e) => setShort(e.target.value)}>
-                        </textarea>
+                        <AutocompleteTextarea
+                            value={short}
+                            onChange={setShort}
+                            wordBank={shortGoalWords}
+                            placeholder="พิมพ์เพื่อค้นหา..."
+                            className="border border-gray-300 rounded-lg py-3 px-3 w-full text-sm text-gray-500 focus:outline-none focus:border-blue-400"
+                        />
                 </div>
                 <div className="flex flex-col p-4">
                         <label className="text-medium text-gray-500">Long term goal</label>
-                        <textarea
-                        className="border border-gray-300 px-3 py-3 rounded text-gray-500 text-sm focus:outline-none focus:border-blue-400 w-full"
+                        <AutocompleteTextarea
                         value={long}
-                        onChange={(e) => setLong(e.target.value)}>
-                        </textarea>
+                        onChange={setLong}
+                        wordBank={longGoalWords}
+                        placeholder="พิมพ์เพื่อค้นหา..."
+                        className="border border-gray-300 rounded-lg py-3 px-3 w-full text-sm text-gray-500 focus:outline-none focus:border-blue-400"
+                    />
                 </div>
 
                 <div className="p-4">

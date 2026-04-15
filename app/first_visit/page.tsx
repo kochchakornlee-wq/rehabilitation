@@ -110,8 +110,8 @@ const columns = [
     options: ["Patient", "Spouse", "Mother","Father","Daugther","Son","Caregiver","Other"] },
   { key: "readiness",  label: "Readiness",                         type: "readiness",
     options: ["Willing", "Refuse", "Unwilling"] },
-  { key: "barriers",   label: "Barriers",                           type: "dropdown",
-    options: ["None", "Language", "Culture","Religious","Emotional","Physical","Phychological","Cognitive","Reading","Hearing","Vision","Speaking","Educational Level","Motivation","Others"] },
+  { key: "barriers", label: "Barriers", type: "barriers",
+  options: ["None", "Language", "Culture","Religious","Emotional","Physical","Phychological","Cognitive","Reading","Hearing","Vision","Speaking","Educational Level","Motivation","Others"] },
   { key: "methods",    label: "Method/s used",                      type: "dropdown",
     options: ["Audio", "Video","Printed","Oral","Group"] },
   { key: "evaluation", label: "Evaluation",                         type: "dropdown",
@@ -246,7 +246,7 @@ export default function EducationTable() {
                   </p>
 
       {/* Patient Info Card */}
-      <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-blue-900">
+      <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-red-500">
         <h2 className="text-xl font-bold mb-4">{patient1.name}</h2>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <p className="font-bold">HN</p>            <p>{patient1.HN}</p>
@@ -322,6 +322,65 @@ export default function EducationTable() {
                       </select>
                     )}
 
+                    {/* ── Barriers multi + Other ── */}
+                    {col.type === "barriers" && (
+                      <div className="flex flex-col gap-0.5">
+                        {/* แสดงที่เลือกแล้ว + คั่นด้วย comma */}
+                        {/* <div className="text-xs text-gray-600 whitespace-pre-wrap min-h-[16px]">
+                          {row[col.key]
+                            ? row[col.key].split(",").map(v => v.trim()).filter(Boolean).join("\n")
+                            : ""}
+                        </div> */}
+
+                        {/* dropdown เลือก */}
+                        <select
+                          className="w-full text-xs text-gray-400 focus:outline-none bg-transparent"
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (!val) return
+                            const current = row[col.key]
+                              ? row[col.key].split(",").map(v => v.trim()).filter(Boolean)
+                              : []
+                            if (!current.includes(val)) {
+                              updateCell(rowIndex, col.key, [...current, val].join(","))
+                            }
+                          }}
+                        >
+                          <option value=""></option>
+                          {col.options?.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+
+                        {/* ถ้ามี Others → พิมพ์เองได้ */}
+                        {row[col.key]?.split(",").map(v => v.trim()).includes("Others") && (
+                          <input
+                            className="w-full text-xs text-gray-600 border-b border-gray-300 focus:outline-none bg-transparent"
+                            placeholder="ระบุ..."
+                            value={row[`${col.key}_other`] ?? ""}
+                            onChange={(e) => updateCell(rowIndex, `${col.key}_other`, e.target.value)}
+                          />
+                        )}
+
+                        {/* ลบรายการที่เลือกได้ */}
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {row[col.key]?.split(",").map(v => v.trim()).filter(Boolean).map(item => (
+                            <span
+                              key={item}
+                              className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded cursor-pointer hover:bg-red-50 hover:text-red-400"
+                              onClick={() => {
+                                const next = row[col.key].split(",").map(v => v.trim()).filter(v => v !== item)
+                                updateCell(rowIndex, col.key, next.join(","))
+                              }}
+                            >
+                              {item} ✕
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* ── Regular dropdown ── */}
                     {col.type === "dropdown" && (
                       <select
@@ -337,14 +396,33 @@ export default function EducationTable() {
                     )}
 
                     {/* ── Text input (topics / specify / provider) ── */}
-                    {col.type === "text" && col.key !== "provider" && (
-                      <input
-                        className="w-full text-xs text-gray-600 focus:outline-none bg-transparent"
-                        value={row[col.key]}
-                        onChange={(e) => updateCell(rowIndex, col.key, e.target.value)}
-                        placeholder={col.key === "topics" ? "e.g. 1, 2 …" : ""}
-                      />
-                    )}
+                    {col.type === "text" && col.key === "topics" && (
+                    <textarea
+                      className="w-full text-xs text-gray-600 focus:outline-none bg-transparent resize-none"
+                      rows={Math.max(1, (row[col.key] || "").split(",").length)}
+                      value={row[col.key]}
+                      onChange={(e) => updateCell(rowIndex, col.key, e.target.value)}
+                      placeholder="e.g. 1, 2 …"
+                    />
+                  )}
+
+                  {col.type === "text" && col.key === "specify" && (
+                    <div className="text-xs text-gray-600 whitespace-pre-wrap">
+                      {row["topics"]
+                        ? row["topics"].split(",").map(v => v.trim()).filter(Boolean)
+                            .map(code => topicCodeMap[code]).filter(Boolean)
+                            .join("\n")
+                        : ""}
+                    </div>
+                  )}
+
+                  {col.type === "text" && col.key !== "provider" && col.key !== "topics" && col.key !== "specify" && (
+                    <input
+                      className="w-full text-xs text-gray-600 focus:outline-none bg-transparent"
+                      value={row[col.key]}
+                      onChange={(e) => updateCell(rowIndex, col.key, e.target.value)}
+                    />
+                  )}
 
                     {/* ── Autocomplete สำหรับ provider ── */}
                     {col.key === "provider" && (
