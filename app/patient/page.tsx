@@ -41,19 +41,20 @@ export default function PatientForm() {
     }
     ]
     return(
-        <div className="min-h-screen bg-gray-100">
-          <nav className="bg-white px-10 py-3 flex justify-start p-4">
-                  <div>
-                    <Image src="/Hospital logo.svg" alt="Hospital Logo" width={100} height={50}></Image>
-                  </div>
-                  <p>
-                    <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                      Home
-                    </a>
-                    <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                      Patient Form
-                    </a>
-                  </p>
+        <div className="min-h-screen bg-gray-100 font-sans">
+          <nav className="bg-white px-10 flex justify-start">
+                  <p className='flex items-end gap-5 bg-white w-full px-4 mb-5'>
+                              <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
+                              <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                  Home
+                              </a>
+                              <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                  Patient Form
+                              </a>
+                              <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                  Other Forms
+                              </a>
+                          </p>
           
                 </nav>
           <div className='p-2'></div>
@@ -163,6 +164,8 @@ export default function PatientForm() {
 </div>
 
               </div>
+              <a href="/otherform" className="mt-5 flex justify-end text-right text-sm text-gray-400 hover:text-blue-700 underline hover:underline transition-colors">
+                Other Forms </a>
               
             </div>
           </main>

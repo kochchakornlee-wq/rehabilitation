@@ -643,6 +643,147 @@ export default function PatientForm() {
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+useEffect(() => {
+  const prefillFromLastVisit = async () => {
+    const today = new Date().toISOString().split("T")[0]
+    console.log("🔍 today:", today)
+    console.log("🔍 HN:", patient[0].HN)
+
+    // เช็คว่าวันนี้มี before แล้วไหม
+    const { data: todayBefore } = await supabase
+      .from("opd_forms")
+      .select("id")
+      .eq("hn", patient[0].HN)
+      .eq("type", "before")
+      .eq("visit_date", today)
+      .maybeSingle()
+
+    console.log("🔍 todayBefore:", todayBefore, "error:", )
+    // if (todayBefore) {
+    //   console.log("⛔ มี before วันนี้แล้ว หยุด prefill")
+    //   return
+    // }
+    
+
+    // ดึง before ของ visit ก่อนหน้า (ไม่ใช่วันนี้)
+    const { data, error } = await supabase
+      .from("opd_forms")
+      .select("*")
+      .eq("hn", patient[0].HN)
+      .eq("type", "before")
+      //.neq("visit_date", today)          // ← ไม่เอาวันนี้
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error || !data) {
+      console.log("ไม่พบข้อมูล visit ก่อนหน้า", error)
+      return
+    }
+
+    console.log("✅ เริ่ม prefill")
+    // simple fields
+    setDiagnosis(data.diagnosis ?? "")
+    setVn(data.vn ?? "")
+    setDoctor1(data.doctor ?? "")
+    setPain(data.pain_score ?? "")
+    setPainLocation(data.location ?? "")
+    setPainAssesmentTool(data.pain_assesment ?? "")
+    setDuration(data.Duration ?? "")
+    setFrequency(data.frequence ?? "")
+    setChief(data.chief ?? "")
+    setPhysio(data.Physio_precaution ?? "")
+    setCheckBarthel(data.barthel ?? "")
+    setShortGoal(data.short_goal ?? "")
+    setLongGoal(data.long_goal ?? "")
+    setVisited(data.physical_exam ?? "")
+    setTreatment(data.treatmentPlan ?? "")
+
+    // characteristic — parse JSON string กัน
+    const rawCha = data.characteristic
+    const parsedCha: string[] = Array.isArray(rawCha)
+      ? rawCha
+      : (() => { try { const p = JSON.parse(rawCha ?? "[]"); return Array.isArray(p) ? p : [] } catch { return [] } })()
+    setCharacteristic(parsedCha)
+
+    // transportation
+    const tranOptions = ["walk", "wheelchair", "Stretcher"]
+    if (tranOptions.includes(data.Transporation)) {
+      setTransporation(data.Transporation)
+    } else if (data.Transporation) {
+      setTransporation("Other")
+      setOtherTran(data.Transporation)
+    }
+
+    // underlying
+    const rawUnd = data.underly
+    const parsedUnd: string[] = Array.isArray(rawUnd)
+      ? rawUnd
+      : (() => { try { const p = JSON.parse(rawUnd ?? "[]"); return Array.isArray(p) ? p : [] } catch { return [] } })()
+    setUnderlying(parsedUnd)
+
+    // vital signs
+    const vs = typeof data.vital_signs === "string"
+      ? JSON.parse(data.vital_signs)
+      : data.vital_signs ?? {}
+    setVitalData({
+      pr:   String(vs.pr   ?? ""),
+      rr:   String(vs.rr   ?? ""),
+      bp:   String(vs.bp   ?? ""),
+      spo2: String(vs.spo2 ?? ""),
+    })
+
+    // fall risk checkboxes
+    const fallItems: string[] = Array.isArray(data.fall_risk_items)
+      ? data.fall_risk_items
+      : (() => { try { return JSON.parse(data.fall_risk_items ?? "[]") } catch { return [] } })()
+    const restoredFall: Record<string, boolean> = {}
+    fallItems.forEach((item) => { restoredFall[item] = true })
+    setFallChecked(restoredFall)
+    // fallRisk level คำนวณเองจาก useEffect [fallChecked]
+
+    // physical exam sections
+    const exam = typeof data.assesment === "string"
+      ? JSON.parse(data.assesment)
+      : data.assesment
+    if (exam) {
+      const rChecked: Record<string, boolean> = {}
+      const rVals: Record<string, string> = {}
+      sections.forEach((s) => {
+        rChecked[s.id] = exam[s.id]?.checked ?? false
+        s.fields.forEach((f) => {
+          rVals[`${s.id}-${f}`] = exam[s.id]?.fields?.[f] ?? ""
+        })
+      })
+      setChecked((prev) => ({ ...prev, ...rChecked }))
+      setValues((prev) => ({ ...prev, ...rVals }))
+    }
+
+    // treatment plan
+    const rawTreatment = data.treatmentPlan
+    const treatments: any[] = Array.isArray(rawTreatment)
+      ? rawTreatment
+      : (() => { try { return JSON.parse(rawTreatment ?? "[]") } catch { return [] } })()
+    const tChecked: Record<string, boolean> = {}
+    const tSub: Record<string, boolean> = {}
+    const tVals: Record<string, string> = {}
+    treatments.forEach((t) => {
+      tChecked[t.id] = true
+      t.subOptions?.forEach((sub: string) => { tSub[`${t.id}-${sub}`] = true })
+      Object.entries(t.fields ?? {}).forEach(([field, val]) => {
+        tVals[`${t.id}-${field}`] = String(val)
+      })
+    })
+    setChecked((prev) => ({ ...prev, ...tChecked }))
+    setSubChecked((prev) => ({ ...prev, ...tSub }))
+    setValues((prev) => ({ ...prev, ...tVals }))
+  }
+
+  prefillFromLastVisit()
+}, [])
+
+
   const [afterpain, setAfterpain] = useState("")
   const suggestOption = [
     "การบริหารร่างกาย(P/I-BSI-024.1)","การลดปวด(P/I-BSI-025.1)","Fall","การฝึกเดิน(P/I-BSI-023.1","การเคาะปอด(P/I-BSI-022.1","การออกกำลังกายในผู้ป่วยอัมพาต(P/I-BSI-017.)"
@@ -782,16 +923,11 @@ useEffect(() => {
     setAfterLocationPain(data.location ?? "")
     setAfterPainAssesmentTool(data.pain_assesment ?? "")
     setAfterDiagnosis(data.diagnosis ?? "")
-    setAfterCharacter(
-      Array.isArray(data.characteristic)
-        ? data.characteristic
-        : typeof data.characteristic === "string" && data.characteristic !== ""
-          ? [data.characteristic]
-          : []
-    )
-    setAfterOtherCharacter(
-      typeof data.characteristic === "string" ? data.characteristic : ""
-    )
+    const rawCha = data.characteristic
+    const parsedCha: string[] = Array.isArray(rawCha)
+      ? rawCha
+      : (() => { try { const p = JSON.parse(rawCha ?? "[]"); return Array.isArray(p) ? p : [] } catch { return [] } })()
+    setAfterCharacter(parsedCha)
 
     setTransporation(
       typeof data.Transporation === "string" ? data.Transporation : ""
@@ -1016,16 +1152,19 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
 
   const [treatment, setTreatment] = useState("")
     return(
-        <div className='min-h-screen bg-gray-100'>
-            <p className='flex items-end gap-5 bg-white px-4 py-4'>
-                <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
-                <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                    Home
-                </a>
-                <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                    Patient Form
-                </a>
-            </p>
+        <div className='min-h-screen bg-gray-100 font-sans'>
+            <p className='flex items-end gap-5 bg-white w-full px-4 py-4 mb-5'>
+                        <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
+                        <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                            Home
+                        </a>
+                        <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                            Patient Form
+                        </a>
+                        <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                            Other Forms
+                        </a>
+                    </p>
             <p className ="p-2"></p>
             <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-red-500">
                 <h2 className="text-xl font-bold mb-4">{patient[0].name}</h2>
@@ -2000,7 +2139,7 @@ const AftersectionFieldWords: Record<string, Record<string, string[]>> = {
         <div className="relative w-80">
           <button
             type="button"
-            className="w-58 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-500 bg-white text-left flex justify-between items-center"
+            className="w-50 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-500 bg-white text-left flex justify-between items-center"
             onClick={() => setChaDropdown((prev) => !prev)}
           >
             <span className="truncate">

@@ -9,20 +9,18 @@ export default function Finish() {
   return (
     <div className="min-h-screen bg-gray-100">
       
-      <div className='flex items-end gap-5 bg-white px-4 py-4'>
-        <Image
-          src="/Hospital logo.svg"
-          alt="Hospital Logo"
-          width={120}
-          height={40}
-        />
-        <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                    Home
-                </a>
-                <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                    Patient Form
-                </a>
-      </div>
+      <p className='flex items-end gap-5 bg-white w-full px-4 py-4 mb-5'>
+                  <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
+                  <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                      Home
+                  </a>
+                  <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                      Patient Form
+                  </a>
+                  <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                      Other Forms
+                  </a>
+              </p>
 
       <div className="bg-white rounded-2xl mx-auto w-1/2 p-4 shadow-md mt-10">
         <div className="flex flex-col items-center">
