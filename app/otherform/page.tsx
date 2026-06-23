@@ -1,61 +1,119 @@
 "use client"
 
 import Image from 'next/image'
-import { use } from 'react'
-import { useRouter } from 'next/navigation'
+import { use, useEffect, useState } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+
+interface HISPatient {
+  hn: string
+  hn_formatted?: string
+  prename?: string
+  firstname?: string
+  lastname?: string
+  birthdate?: string
+  gender?: string
+  age?: number
+  admit_date?: string
+  visit_date?: string
+  allergies?: string[]
+}
+function genderLabel(g?: string) {
+  if (g === "M" || g === "1") return "Male"
+  if (g === "F" || g === "2") return "Female"
+  return g ?? "-"
+}
 
 export default function OtherForm() {
-    const patient = [
-        {
-        name: "John Doe",
-        HN: "123456",
-        birth: "01/01/1980",
-        admit: "01/01/2024",
-        gender: "Male",
-        allergies: "Penicillin"
-        
-    }
-    ]
+    const searchParams = useSearchParams()
+      const hn = searchParams.get("hn") ?? ""
+      
+        const [hisPatient, setHisPatient] = useState<HISPatient | null>(null)
+        const [hisLoading, setHisLoading] = useState(true)
+      
+        useEffect(() => {
+          const fetchHIS = async () => {
+            try {
+              const res = await fetch(`/api/his-patient?hn=${encodeURIComponent(hn)}`)
+              if (res.ok) {
+                const data = await res.json()
+                setHisPatient(data)
+              }
+            } catch { /* ใช้ fallback ด้านล่าง */ }
+            finally { setHisLoading(false) }
+          }
+          fetchHIS()
+        }, [hn])
+      
+        // ─── helper ───
+        const patientHN       = hisPatient?.hn_formatted ?? hisPatient?.hn ?? hn
+        const patientName     = hisPatient
+          ? [hisPatient.prename, hisPatient.firstname, hisPatient.lastname].filter(Boolean).join("")
+          : ""
+        const patientBirth    = hisPatient?.birthdate ?? "-"
+        const patientAdmit    = hisPatient?.admit_date ?? hisPatient?.visit_date ?? "-"
+        const patientGender   = (() => {
+          const g = hisPatient?.gender
+          if (!g) return "-"
+          if (g === "M" || g === "1") return "Male"
+          if (g === "F" || g === "2") return "Female"
+          return g
+        })()
+        const patientAllergy  = hisPatient?.allergies?.join(", ") || "NKDA"
     return(
             <div className="min-h-screen bg-gray-100 font-sans">
-              <nav className="bg-white flex justify-start">
-                      <p className='flex items-end gap-5 bg-white w-full px-4 mb-5'>
-                                  <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
-                                  <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                                      Home
-                                  </a>
-                                  <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                                      Patient Form
-                                  </a>
-                                  <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                                      Other Forms
-                                  </a>
-                              </p>
-              
-                    </nav>
+              <nav className="bg-white flex justify-start sticky top-0 z-50">
+                                <div className="flex items-center gap-5 bg-white w-full px-6 py-4 shadow-sm">
+                                <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
+                                <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                  Home
+                                </a>
+                                <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                  Patient Form
+                                </a>
+                                <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                    Other Forms
+                                </a>
+                                <a href='/patientlist' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                    Patient List
+                                </a>
+                                <a href='/record' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                                    View All Records
+                                </a>
+                          
+                            </div>
+                          </nav>
               <div className='p-2'></div>
-              <div className="bg-white p-6 rounded-2xl shadow-md w-300 mx-auto text-red-500">
-    
-                <h2 className="text-xl font-bold mb-4">{patient[0].name}</h2>
-    
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <p className="font-bold">HN</p>
-                  <p>{patient[0].HN}</p>
-    
-                  <p className="font-bold">Date of Birth</p>
-                  <p>{patient[0].birth}</p>
-    
-                  <p className="font-bold">Admit</p>
-                  <p>{patient[0].admit}</p>
-    
-                  <p className="font-bold">Gender</p>
-                  <p>{patient[0].gender}</p>
-    
-                  <p className="font-bold">Allergies</p>
-                  <p>{patient[0].allergies}</p>
+              <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md border-t-4 border-blue-500">
+              {hisLoading ? (
+                <div className="animate-pulse space-y-2">
+                  <div className="h-6 bg-gray-200 rounded w-48" />
+                  <div className="h-4 bg-gray-100 rounded w-32" />
+                  <div className="h-4 bg-gray-100 rounded w-40" />
                 </div>
-    </div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold mb-4 text-blue-500">{patientName || "ไม่พบข้อมูลผู้ป่วย"}</h2>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <p className="text-blue-800 font-bold">HN</p>
+                    <p className="text-gray-700">{patientHN}</p>
+
+                    <p className="text-blue-800 font-bold">Date of Birth</p>
+                    <p className="text-gray-700">{patientBirth}</p>
+
+                    <p className="text-blue-800 font-bold">Admit</p>
+                    <p className="text-gray-700">{patientAdmit}</p>
+
+                    <p className="text-blue-800 font-bold">Gender</p>
+                    <p className="text-gray-700">{patientGender}</p>
+
+                    <p className="text-blue-800 font-bold">Allergies</p>
+                    <p className="text-gray-700">{patientAllergy}</p>
+                  </div>
+                </>
+              )}
+            </div>
                 <div className='p-2'></div>
+                
                 <div className='mx-auto bg-white w-300 rounded-xl shadow-md'>
                     <div className='flex items-center justify-center p-4'>
                         <p className='font-bold text-3xl text-blue-800'>Other Form Content</p>

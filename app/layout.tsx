@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ErrorBoundaryWrapper from "@/components/ErrorBoundaryWrapper"
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,8 +29,21 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ErrorBoundaryWrapper>
+          {children}
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );
+}
+
+function ErrorFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen text-gray-500">
+      <p className="text-lg font-medium">เกิดข้อผิดพลาด</p>
+      <button onClick={() => window.location.reload()} className="mt-3 text-blue-500 underline text-sm">
+        โหลดใหม่
+      </button>
+    </div>
+  )
 }

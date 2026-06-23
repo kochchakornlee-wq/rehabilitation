@@ -1,7 +1,8 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { supabase } from "@/lib/supabase"
+import { useParams, useSearchParams } from "next/navigation"
 
 // ======================================
 // Topic code -> Specify needs mapping
@@ -14,6 +15,20 @@ type PatientCardProps = {
   admit: string
   gender: string
   allergies: string
+}
+
+interface HISPatient {
+  hn: string
+  hn_formatted?: string
+  prename?: string
+  firstname?: string
+  lastname?: string
+  birthdate?: string
+  gender?: string
+  age?: number
+  admit_date?: string
+  visit_date?: string
+  allergies?: string[]
 }
 
 const topicCodeMap: Record<string, string> = {
@@ -119,7 +134,7 @@ const columns = [
   { key: "provider",   label: "Education Provider (Name/Position)", type: "text"      },
 ]
 
-type Row = Record<string, string>
+type Row = Record<string, string> & { _id?: string }
 
 const emptyRow = (): Row =>
   Object.fromEntries(columns.map((col) => [col.key, ""]))
@@ -145,9 +160,42 @@ function StatusModal({ show, message, type, onClose }: { show: boolean; message:
 
 
 export default function EducationTable() {
-  const [row, setRow] = useState<Row[]>([
-    emptyRow(), emptyRow(), emptyRow(), emptyRow(), emptyRow(),
-  ])
+
+  const searchParams = useSearchParams()
+    const hn = searchParams.get("hn") ?? ""
+  
+    const [hisPatient, setHisPatient] = useState<HISPatient | null>(null)
+    const [hisLoading, setHisLoading] = useState(true)
+  
+    useEffect(() => {
+      const fetchHIS = async () => {
+        try {
+          const res = await fetch(`/api/his-patient?hn=${encodeURIComponent(hn)}`)
+          if (res.ok) {
+            const data = await res.json()
+            setHisPatient(data)
+          }
+        } catch { /* ใช้ fallback ด้านล่าง */ }
+        finally { setHisLoading(false) }
+      }
+      fetchHIS()
+    }, [hn])
+  
+    // ─── helper ───
+    const patientHN       = hisPatient?.hn_formatted ?? hisPatient?.hn ?? hn
+    const patientName     = hisPatient
+      ? [hisPatient.prename, hisPatient.firstname, hisPatient.lastname].filter(Boolean).join("")
+      : ""
+    const patientBirth    = hisPatient?.birthdate ?? "-"
+    const patientAdmit    = hisPatient?.admit_date ?? hisPatient?.visit_date ?? "-"
+    const patientGender   = (() => {
+      const g = hisPatient?.gender
+      if (!g) return "-"
+      if (g === "M" || g === "1") return "Male"
+      if (g === "F" || g === "2") return "Female"
+      return g
+    })()
+    const patientAllergy  = hisPatient?.allergies?.join(", ") || "NKDA"
 
   const updateCell = (rowIndex: number, key: string, value: string) => {
     setRows((prev) =>
@@ -173,92 +221,195 @@ export default function EducationTable() {
     setToast({ show: true, message, type })
   }
 
-  const patient = {
-    name: "John Doe",
-    HN: "777777",
-    birth: "01/01/1980",
-    admit: "01/01/2024",
-    gender: "Male",
-    allergies: "Penicillin",
-  }
-  const patient1 = {
-    name: "Cerina Doe",
-    HN: "777777",
-    birth: "01/01/1980",
-    admit: "01/01/2024",
-    gender: "Male",
-    allergies: "Penicillin",
-  }
+
   const [rows, setRows] = useState<Row[]>([emptyRow()])
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+useEffect(() => {
+  if (!patientHN) return
+  if (autoSaveRef.current) clearTimeout(autoSaveRef.current)
+
+  autoSaveRef.current = setTimeout(async () => {
+    const filled = rows.filter(r =>
+      Object.entries(r).some(([k, v]) => k !== "id" && String(v).trim())
+    )
+    if (!filled.length) return
+
+    setAutoSaveStatus("saving")
+    try {
+      for (const row of filled) {
+        const { id, ...fields } = row as any
+        if (id) {
+          await fetch(`/api/education?id=${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hn: patientHN, ...fields }),
+          })
+        } else {
+          await fetch("/api/education", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify([{ hn: patientHN, ...fields }]),
+          })
+        }
+      }
+      setAutoSaveStatus("saved")
+      setTimeout(() => setAutoSaveStatus("idle"), 3000)
+    } catch {
+      setAutoSaveStatus("idle")
+    }
+  }, 10000)
+
+  return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current) }
+}, [rows, patientHN])
 
   // ── โหลดข้อมูลเก่าตาม HN ──
-  useEffect(() => {
-    async function fetchRecords() {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from("education_records")
-        .select("*")
-        .eq("hn", patient1.HN)
-        .order("created_at", { ascending: true })
-
-      if (data && data.length > 0) {
-        setRows(data.map(({ id, hn, created_at, ...rest }) => rest as Row))
-      }
-      setLoading(false)
+  // ── ประกาศ fetchRecords นอก useEffect ──
+const fetchRecords = async () => {
+  setLoading(true)
+  const res = await fetch(`/api/education?hn=${patientHN}`)
+  if (res.ok) {
+    const data = await res.json()
+    if (Array.isArray(data) && data.length > 0) {
+      setRows(data.map(({ created_at, ...rest }: any) => rest as Row))
     }
-    fetchRecords()
-  }, [patient1.HN])
+  }
+  setLoading(false)
+}
 
-  // ── บันทึกทุก row ──
-  const saveAll = async () => {
-    setSaving(true)
+// ── useEffect แค่เรียกใช้ ──
+useEffect(() => {
+  fetchRecords()
+}, [])
 
-    // ลบแถวเก่าของ HN นี้ก่อน แล้ว insert ใหม่ทั้งหมด
-    await supabase.from("education_records").delete().eq("hn", patient1.HN)
 
-    const records = rows
-      .filter(row => Object.values(row).some(v => v !== "")) // กรองแถวว่าง
-      .map(row => ({ hn: patient1.HN, ...row }))
 
-    const { error } = await supabase.from("education_records").insert(records)
+const saveAll = async () => {
+  setSaving(true)
 
+  const filled = rows.filter(row =>
+    Object.entries(row)
+      .filter(([k]) => k !== '_id' && k !== 'hn' && k !== 'id')
+      .some(([, v]) => v !== "")
+  )
+
+  if (filled.length === 0) {
     setSaving(false)
-    if (error) showToast("เกิดข้อผิดพลาด: " + error.message, "error")
-    else showToast("บันทึกสำเร็จ! 🎉")
+    showToast("ไม่มีข้อมูลที่จะบันทึก", "error")
+    return
   }
 
-  if (loading) return <div>กำลังโหลด...</div>
+  try {
+    for (const row of filled) {
+      const { id, ...fields } = row as any
+
+      if (id) {
+        // แถวที่โหลดมาจาก DB → UPDATE
+        await fetch(`/api/education?id=${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hn: patientHN, ...fields }),
+        })
+      } else {
+        // แถวใหม่ที่ user เพิ่ม → INSERT
+        await fetch("/api/education", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify([{ hn: patientHN, ...fields }]),
+        })
+      }
+    }
+
+    setSaving(false)
+    showToast("บันทึกสำเร็จ! 🎉")
+    await fetchRecords()
+  } catch (err) {
+    setSaving(false)
+    showToast("เกิดข้อผิดพลาด กรุณาลองใหม่", "error")
+  }
+}
+
+
 
   return (
     <div className="overflow-x-auto min-h-screen bg-gray-100 font-sans">
       <StatusModal show={toast.show} message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, show: false }))} />
       {/* Header / Logo */}
-      <p className='flex items-end gap-5 bg-white w-full px-4 py-4 mb-5'>
-                  <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
-                  <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                      Home
-                  </a>
-                  <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                      Patient Form
-                  </a>
-                  <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                      Other Forms
-                  </a>
-              </p>
+      <nav className="bg-white flex justify-start sticky top-0 z-50">
+                        <div className="flex items-center gap-5 bg-white w-full px-6 py-4 shadow-sm">
+                        <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
+                        <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                          Home
+                        </a>
+                        <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                          Patient Form
+                        </a>
+                        <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                            Other Forms
+                        </a>
+                        <a href='/patientlist' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                            Patient List
+                        </a>
+                        <a href='/record' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                            View All Records
+                        </a>
+                      <div className="ml-auto flex items-center gap-2">
+                      {autoSaveStatus === "saving" && (
+                        <>
+                          <svg className="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                          </svg>
+                          <span className="text-xs text-gray-400">กำลังบันทึก...</span>
+                        </>
+                      )}
+                      {autoSaveStatus === "saved" && (
+                        <>
+                          <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                          </svg>
+                          <span className="text-xs text-green-500">Auto saved</span>
+                        </>
+                      )}
+                    </div>
+                  
+                    </div>
+                  </nav>
+                  <p className ="p-2"></p>
 
       {/* Patient Info Card */}
-      <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md text-red-500">
-        <h2 className="text-xl font-bold mb-4">{patient1.name}</h2>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <p className="font-bold">HN</p>            <p>{patient1.HN}</p>
-          <p className="font-bold">Date of Birth</p> <p>{patient1.birth}</p>
-          <p className="font-bold">Admit</p>          <p>{patient1.admit}</p>
-          <p className="font-bold">Gender</p>         <p>{patient1.gender}</p>
-          <p className="font-bold">Allergies</p>      <p>{patient1.allergies}</p>
-        </div>
-      </div>
+      <div className="bg-white rounded-2xl mx-auto w-300 p-4 shadow-md border-t-4 border-blue-500">
+              {hisLoading ? (
+                <div className="animate-pulse space-y-2">
+                  <div className="h-6 bg-gray-200 rounded w-48" />
+                  <div className="h-4 bg-gray-100 rounded w-32" />
+                  <div className="h-4 bg-gray-100 rounded w-40" />
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold mb-4 text-blue-500">{patientName || "ไม่พบข้อมูลผู้ป่วย"}</h2>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <p className="text-blue-800 font-bold">HN</p>
+                    <p className="text-gray-700">{patientHN}</p>
+
+                    <p className="text-blue-800 font-bold">Date of Birth</p>
+                    <p className="text-gray-700">{patientBirth}</p>
+
+                    <p className="text-blue-800 font-bold">Admit</p>
+                    <p className="text-gray-700">{patientAdmit}</p>
+
+                    <p className="text-blue-800 font-bold">Gender</p>
+                    <p className="text-gray-700">{patientGender}</p>
+
+                    <p className="text-blue-800 font-bold">Allergies</p>
+                    <p className="text-gray-700">{patientAllergy}</p>
+                  </div>
+                </>
+              )}
+            </div>
 
       {/* Education Table Card */}
       <div className="bg-white rounded-2xl mx-auto w-300 p-4 mt-4 shadow-md">

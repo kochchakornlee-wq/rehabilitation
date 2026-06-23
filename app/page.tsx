@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { useRouter } from "next/navigation";
+import { useRouter, redirect } from "next/navigation";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type StatCardProps = {
@@ -110,6 +110,7 @@ function AppointmentItem({ time, name, specialty, accent }: AppointmentProps) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  
   const router = useRouter();
   const now = new Date()
   const [calYear, setCalYear]   = useState(now.getFullYear())
@@ -150,25 +151,31 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-slate-100 font-sans">
 
       {/* ── Navbar ── */}
-      <nav className="bg-white border-b border-slate-200 px-8 flex items-center sticky top-0 z-10 shadow-xs">
-        <p className='flex items-end gap-5 bg-white w-full px-4 py-3 mb-5'>
-                    <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
-                    <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                        Home
-                    </a>
-                    <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                        Patient Form
-                    </a>
-                    <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
-                        Other Forms
-                    </a>
-                </p>
-        <div className="flex items-center justify-end gap-3">          
+      <nav className="bg-white flex justify-start sticky top-0 z-50">
+            <div className="flex items-center gap-5 bg-white w-full px-6 py-4 shadow-sm">
+            <Image src='/Hospital logo.svg' alt="Hospital Logo" width={100} height={50}></Image>
+            <a href='/' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+              Home
+            </a>
+            <a href='/patient' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+              Patient Form
+            </a>
+            <a href='/otherform' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                Other Forms
+            </a>
+            <a href='/patientlist' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                Patient List
+            </a>
+            <a href='/record' className='ml-10 text-gray-400 text-sm hover:text-blue-700 hover:underline transition-colors'>
+                View All Records
+            </a>
+      <div className="flex items-center justify-end gap-3">          
           <p className="absolute top-6 right-0 w-16 curdor-pointer">
           <Image src="/logout.png" alt="Logout" width={20} height={48} className="cursor-pointer hover:opacity-75" onClick={() => router.push("/login")} />
         </p>
         </div>
-      </nav>
+</div>                                      
+</nav>
 
       {/* ── Hero bar ── */}
       <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
