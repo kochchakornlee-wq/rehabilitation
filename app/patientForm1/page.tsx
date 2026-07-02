@@ -767,6 +767,13 @@ export default function PatientForm() {
         body: JSON.stringify({
           hn: patientHN,
           patientName: patientName,
+          patientInfo: {
+            hn: patientHN,
+            name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+            gender: patientGender,
+            dob: patientBirth,
+            allergies: patientAllergy,
+          },
           type: "before",
           visit_date: date,
           visit_time: time,
@@ -808,6 +815,7 @@ export default function PatientForm() {
           treatmentPlan: treatment,
           short_goal: shortgoal,
           long_goal: longGoal,
+          status: "saved",
         }),
       });
 
@@ -902,6 +910,13 @@ export default function PatientForm() {
         body: JSON.stringify({
           hn: patientHN,
           patientName: patientName,
+          patientInfo: {
+            hn: patientHN,
+            name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+            gender: patientGender,
+            dob: patientBirth,
+            allergies: patientAllergy,
+          },
           type: "after",
           visit_date: afterdate || new Date().toISOString().split("T")[0],
           visit_time: aftertime,
@@ -926,11 +941,12 @@ export default function PatientForm() {
               ].filter(Boolean)
             : aftercharacter,
           suggest: suggest,
-          status: discharge === "Other" ? otherDischarge : discharge,
+          after_status: discharge === "Other" ? otherDischarge : discharge,
           therapist: therapist,
           treatment_items: getTreatmentItems(),
           assesment: visited,
           diagnosis: afterDiagnosis,
+          status: "saved",
         }),
       });
 
@@ -1489,9 +1505,14 @@ export default function PatientForm() {
       setUnderlying(
         Array.isArray(data.underly)
           ? data.underly
-          : typeof data.underly === "string" && data.underly !== ""
-            ? [data.underly]
-            : [],
+          : (() => {
+              try {
+                const p = JSON.parse(data.underly ?? "[]");
+                return Array.isArray(p) ? p : [];
+              } catch {
+                return [];
+              }
+            })(),
       );
 
       const exam = (() => {

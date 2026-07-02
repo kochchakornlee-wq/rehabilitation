@@ -15,6 +15,7 @@ export type IpdPdfPayload = SharedClinicalPayload & {
   therapist?: string;
   treatment_detail?: Record<string, unknown>;
   fall_risk_mode?: string;
+  after_status?: string;
 };
 
 // ─── IPD patient info (field names ต่างจาก OPD) ─────────────────────────────
@@ -434,6 +435,10 @@ function fillIpdAfterSection(h: PdfFormHelpers, data: IpdPdfPayload) {
     suggests.some((s) => s.includes("การฝึกเดิน")),
   );
   h.setCheck(
+    "Fall",
+    suggests.some((s) => s.includes("Fall")),
+  );
+  h.setCheck(
     "pain reduction",
     suggests.some((s) => s.includes("การลดปวด")),
   );
@@ -444,7 +449,7 @@ function fillIpdAfterSection(h: PdfFormHelpers, data: IpdPdfPayload) {
 
   // discharge status
   h.setText("physiotherapist", d.therapist ?? "");
-  const status = d.status ?? "";
+  const status = data.after_status ?? "";
   h.setCheck("good", status === "รู้สึกดี");
   h.setCheck("upset", status === "ซึม");
   h.setCheck("toggle_67", status === "สับสน");

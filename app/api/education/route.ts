@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     const id = crypto.randomUUID();
     await pool.query(
       `INSERT INTO education_records
-       (id, hn, datetime, topics, specify, education, readiness, barriers, methods, evaluation, provider)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+ (id, hn, datetime, topics, specify, education, readiness, barriers, methods, evaluation, provider, status)
+ VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         item.hn ?? null,
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         item.methods ?? null,
         item.evaluation ?? null,
         item.provider ?? null,
+        item.status ?? "saved", // ← เพิ่ม
       ],
     );
     ids.push(id);
@@ -56,9 +57,9 @@ export async function PUT(req: NextRequest) {
 
   await pool.query(
     `UPDATE education_records SET
-     datetime=?, topics=?, specify=?, education=?, readiness=?,
-     barriers=?, methods=?, evaluation=?, provider=?
-     WHERE id=?`,
+ datetime=?, topics=?, specify=?, education=?, readiness=?,
+ barriers=?, methods=?, evaluation=?, provider=?, status=?
+ WHERE id=?`,
     [
       body.datetime ?? null,
       body.topics ?? null,
@@ -69,6 +70,7 @@ export async function PUT(req: NextRequest) {
       body.methods ?? null,
       body.evaluation ?? null,
       body.provider ?? null,
+      body.status ?? "saved",
       id,
     ],
   );

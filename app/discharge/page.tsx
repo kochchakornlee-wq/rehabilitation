@@ -346,7 +346,7 @@ export default function Discharge() {
   };
 
   useEffect(() => {
-    if (!patientHN) return;
+    if (!hn) return;
 
     const fetchGoals = async () => {
       // ── 1. ดึง OPD/IPD ล่าสุด เป็น baseline ──────────────────────────────
@@ -539,6 +539,13 @@ export default function Discharge() {
       const body = {
         hn: patientHN,
         date: date,
+        patientInfo: {
+          hn: patientHN,
+          name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+          gender: patientGender,
+          dob: patientBirth,
+          allergies: patientAllergy,
+        },
         time: time,
         doctor: doctor,
         short_goal: short,
@@ -665,7 +672,7 @@ export default function Discharge() {
   ];
 
   return (
-    <div className="overflow-x-auto min-h-screen bg-gray-100 font-sans">
+    <div className="min-h-screen bg-gray-100 font-sans">
       <StatusModal
         show={modal.show}
         message={modal.message}

@@ -781,7 +781,7 @@ export default function PatientForm() {
     fetchHIS();
   }, [hn]);
 
-  const [treatmentDetails, setTreatmentDetails] = useState("");
+  const [treatmentDetails, setTreatmentDetails] = useState<string>("");
 
   // ─── helper ───
   const patientHN = hisPatient?.hn_formatted ?? hisPatient?.hn ?? hn;
@@ -1039,7 +1039,7 @@ export default function PatientForm() {
   ];
   const [suggest, setSuggest] = useState<string[]>([]);
   const [suggestDropdown, setSuggestDropdown] = useState(false);
-  const status = ["รู้สึกดี", "ซึม", "สับสน", "ไม่รู้สึกตัว", "อื่น ๆ"];
+  const statusop = ["รู้สึกดี", "ซึม", "สับสน", "ไม่รู้สึกตัว", "อื่น ๆ"];
   const [discharge, setDischarge] = useState("");
   const [otherDischarge, setOtherDischarge] = useState("");
   const [therapist, setTherapist] = useState("");
@@ -1102,7 +1102,7 @@ export default function PatientForm() {
   }, []);
 
   useEffect(() => {
-    if (!patientHN) return;
+    if (!hn) return;
     const prefillFromLastVisit = async () => {
       const res = await fetch(
         `/api/ipd?hn=${patientHN}&type=before&includeDraft=true`,
@@ -1139,6 +1139,7 @@ export default function PatientForm() {
       })();
       setVisited(parsedVisit);
       setTreatment(data.treatmentplan ?? "");
+      setTreatmentDetails(data.treatment_detail_text_said);
 
       const rawCha = data.characteristic;
       const parsedCha: string[] = Array.isArray(rawCha)
@@ -1486,7 +1487,7 @@ export default function PatientForm() {
       after_frequency: afterfrequence,
       after_assessment: afterAssessment,
       suggest,
-      status: discharge === "อื่น ๆ" ? otherDischarge : discharge,
+      after_status: discharge === "อื่น ๆ" ? otherDischarge : discharge,
       therapist,
       treatment_detail_text_said: treatmentDetails,
     };
@@ -1541,6 +1542,13 @@ export default function PatientForm() {
       const body = {
         hn: patientHN,
         type: "before",
+        patientInfo: {
+          hn: patientHN,
+          name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+          gender: patientGender,
+          dob: patientBirth,
+          allergies: patientAllergy,
+        },
         visit_date: date,
         visit_time: time,
         doctor: doctor1,
@@ -1587,6 +1595,7 @@ export default function PatientForm() {
         treatmentplan: treatment,
         short_goal: shortgoal,
         long_goal: longGoal,
+        status: "saved",
       };
 
       const res = await fetch("/api/ipd", {
@@ -1741,6 +1750,14 @@ export default function PatientForm() {
       const body = {
         hn: patientHN,
         type: "after",
+        patientInfo: {
+          hn: patientHN,
+          name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+          gender: patientGender,
+          dob: patientBirth,
+          allergies: patientAllergy,
+        },
+        status: "saved",
         visit_date: new Date().toISOString().split("T")[0],
         visit_time: time2,
         physical_exam: physicalExam,
@@ -1765,7 +1782,7 @@ export default function PatientForm() {
             ].filter(Boolean)
           : aftercharacter,
         suggest,
-        status: discharge === "อื่น ๆ" ? otherDischarge : discharge,
+        after_status: discharge === "อื่น ๆ" ? otherDischarge : discharge,
         therapist,
         treatment_detail_text_said: treatmentDetails,
         treatment_items: getTreatmentItems(),
@@ -3321,8 +3338,8 @@ export default function PatientForm() {
                   Treatment Detail
                 </label>
                 <textarea
-                  className="w-287 border rounded-lg ml-4 mr-4 border-gray-300 rounded-b-lg px-3 py-2 text-sm text-gray-500 focus:outline-none focus:border-blue-400 resize-none"
-                  value={treatmentDetails}
+                  className="w-287 border rounded-lg ml-4 mr-4 border-gray-300 rounded-b-lg px-3 py-2 text-sm text-gray..."
+                  value={treatmentDetails ?? ""}
                   onChange={(e) => setTreatmentDetails(e.target.value)}
                 />
               </div>
@@ -3569,7 +3586,7 @@ export default function PatientForm() {
                   onChange={(e) => setDischarge(e.target.value)}
                 >
                   <option value="">---Select---</option>
-                  {status.map((item) => (
+                  {statusop.map((item) => (
                     <option key={item} value={item}>
                       {item}
                     </option>

@@ -351,13 +351,19 @@ export default function EducationTable() {
             await fetch(`/api/education?id=${id}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ hn: patientHN, ...fields }),
+              body: JSON.stringify({
+                hn: patientHN,
+                ...fields,
+                status: "draft",
+              }),
             });
           } else {
             await fetch("/api/education", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify([{ hn: patientHN, ...fields }]),
+              body: JSON.stringify([
+                { hn: patientHN, ...fields, status: "draft" },
+              ]),
             });
           }
         }
@@ -417,14 +423,16 @@ export default function EducationTable() {
           await fetch(`/api/education?id=${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hn: patientHN, ...fields }),
+            body: JSON.stringify({ hn: patientHN, ...fields, status: "saved" }),
           });
         } else {
           // แถวใหม่ที่ user เพิ่ม → INSERT
           await fetch("/api/education", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify([{ hn: patientHN, ...fields }]),
+            body: JSON.stringify([
+              { hn: patientHN, ...fields, status: "saved" },
+            ]),
           });
         }
       }

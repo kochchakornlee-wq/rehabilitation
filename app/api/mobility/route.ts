@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
        admission_score=?, admission_date=?, admission_label=?,
        dc_score=?, dc_date=?, dc_label=?,
        fu_score=?, fu_date=?, fu_label=?,
-       assessor_name=?, assessor_date=?, assessor_time=?, notes=?, updated_at=NOW()
+       assessor_name=?, assessor_date=?, assessor_time=?, notes=?, status=?, updated_at=NOW()
        WHERE id=?`,
       [
         body.admission_score ?? null,
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         body.assessor_date ?? null,
         body.assessor_time ?? null,
         body.notes ?? null,
+        body.status ?? "saved",
         existingId,
       ],
     );
@@ -59,8 +60,8 @@ export async function POST(req: NextRequest) {
       `INSERT INTO mobility_assessment
        (id, hn, admission_score, admission_date, admission_label,
         dc_score, dc_date, dc_label, fu_score, fu_date, fu_label,
-        assessor_name, assessor_date, assessor_time, notes)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        assessor_name, assessor_date, assessor_time, notes, status)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         body.hn,
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
         body.assessor_date ?? null,
         body.assessor_time ?? null,
         body.notes ?? null,
+        body.status ?? "saved",
       ],
     );
     return NextResponse.json({ success: true, id });

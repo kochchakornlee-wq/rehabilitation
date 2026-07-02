@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
-import pool from "@/lib/db"
-import nodemailer from "nodemailer"
-import crypto from "crypto"
+import { NextRequest, NextResponse } from "next/server";
+import pool from "@/lib/db";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -9,42 +9,42 @@ const transporter = nodemailer.createTransport({
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
   },
-})
+});
 
 export async function POST(req: NextRequest) {
-  console.log("🔵 forgot-password called")
+  console.log("🔵 forgot-password called");
 
-  const { email } = await req.json()
-  if (!email)
-    return NextResponse.json({ error: "กรุณากรอกอีเมล" }, { status: 400 })
+  const { username } = await req.json();
+  if (!username)
+    return NextResponse.json({ error: "กรุณากรอก Username" }, { status: 400 });
 
   try {
     const [rows] = await pool.query(
-      `SELECT * FROM users WHERE email = ? LIMIT 1`,
-      [email]
-    )
-    const users = rows as any[]
+      `SELECT * FROM users WHERE username = ? LIMIT 1`,
+      [username],
+    );
+    const users = rows as any[];
 
     // ไม่บอกว่าเจอหรือไม่เจอ (security)
     if (users.length === 0) {
-      console.log("🟡 email not found:", email)
-      return NextResponse.json({ success: true })
+      console.log("🟡 username not found:", username);
+      return NextResponse.json({ success: true });
     }
 
-    const user = users[0]
-    const token = crypto.randomBytes(32).toString("hex")
-    const expires = new Date(Date.now() + 1000 * 60 * 30) // 30 นาที
+    const user = users[0];
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 1000 * 60 * 30); // 30 นาที
 
     await pool.query(
       `UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?`,
-      [token, expires, user.id]
-    )
+      [token, expires, user.id],
+    );
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
 
     await transporter.sendMail({
       from: `"Rehab App" <${process.env.GMAIL_USER}>`,
-      to: email,
+      to: user.email,
       subject: "รีเซ็ตรหัสผ่าน - ระบบ Rehab Siriroj",
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
@@ -60,13 +60,12 @@ export async function POST(req: NextRequest) {
           <p style="color:#9ca3af; font-size:12px;">Bangkok Hospital Siriroj — Rehabilitation Department</p>
         </div>
       `,
-    })
+    });
 
-    console.log("✅ email sent to:", email)
-    return NextResponse.json({ success: true })
-
+    console.log("✅ email sent to:", user.email);
+    return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("🔴 forgot-password error:", err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    console.error("🔴 forgot-password error:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

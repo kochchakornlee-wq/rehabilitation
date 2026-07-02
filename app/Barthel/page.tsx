@@ -675,6 +675,14 @@ export default function BarthelIndexForm() {
     try {
       const rows = sessions.map((s, idx) => ({
         hn: patientHN,
+        patientInfo: {
+          hn: patientHN,
+          name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+          gender: patientGender,
+          dob: patientBirth,
+          allergies: patientAllergy,
+        },
+        status: "saved", // ← กด save จริง ต้องระบุ status ชัดเจน ไม่งั้น API จะเก็บเป็น draft
         session_number: idx + 1,
         assessed_at: s.date,
         total_score: calcTotal(s.scores),
@@ -720,7 +728,7 @@ export default function BarthelIndexForm() {
     setAutoSaveStatus("saving");
     try {
       const rows = sessions.map((s, idx) => ({
-        hn: patientHN || "TEST-002",
+        hn: patientHN,
         type: "before",
         status: "draft", // ← draft เท่านั้น
         session_number: idx + 1,

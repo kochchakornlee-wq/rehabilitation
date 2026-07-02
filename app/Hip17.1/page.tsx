@@ -575,10 +575,18 @@ export default function Hip17() {
       hn: patientHN,
       visit_type: visitType,
       VisitTypeEN: visitTypeEN,
+      patientInfo: {
+        hn: patientHN,
+        name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+        gender: patientGender,
+        dob: patientBirth,
+        allergies: patientAllergy,
+      },
       assessor_name: assessorName,
       assessor_date: assessorDate || null,
       assessor_time: assessorTime || null,
       notes,
+      status: "saved",
     };
 
     for (const item of PAIN_ITEMS.en) {
@@ -663,6 +671,7 @@ export default function Hip17() {
         assessor_date: assessorDate,
         assessor_time: assessorTime,
         notes,
+        status: "draft",
       };
       for (const item of PAIN_ITEMS.en) {
         const v = painSelections[item.id];

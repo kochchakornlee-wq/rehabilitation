@@ -329,11 +329,19 @@ export default function MobilityAssessmentGrid({
       const hn = patientHN;
 
       const payload: Record<string, unknown> = {
-        hn: hn || "TEST-56890", // ← เผื่อกรณีไม่มี HN จริงๆ จะได้ไม่ error
+        hn: hn,
+        patientInfo: {
+          hn: patientHN,
+          name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+          gender: patientGender,
+          dob: patientBirth,
+          allergies: patientAllergy,
+        }, // ← เผื่อกรณีไม่มี HN จริงๆ จะได้ไม่ error
         assessor_name: data.assessor_name,
         assessor_date: data.assessor_date || null,
         assessor_time: data.assessor_time || null,
         notes: data.notes,
+        status: "saved",
       };
 
       if (data.admission.score !== null) {
@@ -394,6 +402,7 @@ export default function MobilityAssessmentGrid({
         assessor_date: data.assessor_date || null,
         assessor_time: data.assessor_time || null,
         notes: data.notes,
+        status: "draft",
       };
 
       if (data.admission.score !== null) {

@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
   fall_risk, fall_risk_items, precaution, barthel, physical_exam,
   treatmentplan, short_goal, long_goal, treatment_items, treatment_detail,
   treatment_detail_text, treatment_detail_text_said,
-  suggest, status, therapist, assesment)
- VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+  suggest, status, therapist, assesment, after_status)
+ VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         body.hn ?? null,
@@ -84,11 +84,12 @@ export async function POST(req: NextRequest) {
         body.treatment_items ? JSON.stringify(body.treatment_items) : null,
         body.treatment_detail ? JSON.stringify(body.treatment_detail) : null,
         body.treatment_detail_text ?? null,
-        body.treatment_detail_text_said ?? null, // ← ย้ายมาถูกที่
+        body.treatment_detail_text_said ?? null,
         body.suggest ? JSON.stringify(body.suggest) : null,
-        body.status ?? null,
-        body.therapist ?? null,
-        body.assesment ? JSON.stringify(body.assesment) : null,
+        body.status ?? "draft", // ← column: status
+        body.therapist ?? null, // ← column: therapist
+        body.assesment ? JSON.stringify(body.assesment) : null, // ← column: assesment
+        body.after_status ?? null, // ← column: after_status
       ],
     );
 
@@ -113,14 +114,14 @@ export async function PUT(req: NextRequest) {
 
     await pool.query(
       `UPDATE ipd_forms SET
-     type=?, visit_date=?, visit_time=?, doctor=?, room=?, transporation=?,
-     vital_signs=?, chief=?, diagnosis=?, physio_precaution=?, underly=?,
-     pain_score=?, location=?, pain_assesment=?, characteristic=?, duration=?,
-     frequence=?, fall_risk=?, fall_risk_items=?, precaution=?, barthel=?,
-     physical_exam=?, treatmentplan=?, short_goal=?, long_goal=?,treatment_detail_text_said=?,
-     treatment_items=?, treatment_detail=?,treatment_detail_text=?, treatment_detail_text_said=?, suggest=?, status=?, therapist=?,
-     assesment=?
-     WHERE id=?`,
+   type=?, visit_date=?, visit_time=?, doctor=?, room=?, transporation=?,
+   vital_signs=?, chief=?, diagnosis=?, physio_precaution=?, underly=?,
+   pain_score=?, location=?, pain_assesment=?, characteristic=?, duration=?,
+   frequence=?, fall_risk=?, fall_risk_items=?, precaution=?, barthel=?,
+   physical_exam=?, treatmentplan=?, short_goal=?, long_goal=?,
+   treatment_items=?, treatment_detail=?, treatment_detail_text=?, treatment_detail_text_said=?,
+   suggest=?, status=?, therapist=?, assesment=?, after_status=?
+   WHERE id=?`,
       [
         body.type ?? null,
         body.visit_date ?? null,
@@ -132,7 +133,7 @@ export async function PUT(req: NextRequest) {
         body.chief ?? null,
         body.diagnosis ?? null,
         body.physio_precaution ?? null,
-        body.underly ?? null,
+        body.underly ? JSON.stringify(body.underly) : null,
         body.pain_score ?? null,
         body.location ?? null,
         body.pain_assesment ?? null,
@@ -147,16 +148,16 @@ export async function PUT(req: NextRequest) {
         body.treatmentplan ?? null,
         body.short_goal ?? null,
         body.long_goal ?? null,
-        body.treatment_detail_text_said ?? null,
         body.treatment_items ? JSON.stringify(body.treatment_items) : null,
         body.treatment_detail ? JSON.stringify(body.treatment_detail) : null,
-        body.suggest ?? null,
-        body.status ?? null,
-        body.therapist ?? null,
-        body.assesment ? JSON.stringify(body.assesment) : null,
-        id,
         body.treatment_detail_text ?? null,
         body.treatment_detail_text_said ?? null,
+        body.suggest ? JSON.stringify(body.suggest) : null,
+        body.status ?? "saved",
+        body.therapist ?? null,
+        body.assesment ? JSON.stringify(body.assesment) : null,
+        body.after_status ?? null,
+        id,
       ],
     );
 

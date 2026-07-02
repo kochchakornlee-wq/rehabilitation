@@ -35,6 +35,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("OPD POST body keys:", Object.keys(body));
+    console.log("OPD POST body.assesment:", body.assesment);
     console.log("patientInfo:", body.patientInfo);
     await upsertPatient(pool, body.patientInfo);
     const id = crypto.randomUUID();
@@ -46,8 +48,8 @@ export async function POST(req: NextRequest) {
     pain_assesment, characteristic, Duration, frequence, barthel,
     physical_exam, treatmentPlan, short_goal, long_goal, assesment,
     fall_risk, fall_risk_items, vital_signs, chief, therapist, suggest,
-    status, treatment_items, treatment_detail)
-   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    status, treatment_items, treatment_detail, after_status)
+   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         body.hn ?? null,
@@ -79,10 +81,11 @@ export async function POST(req: NextRequest) {
         body.vital_signs ? JSON.stringify(body.vital_signs) : null,
         body.chief ?? null,
         body.therapist ?? null,
-        body.suggest ?? null,
+        body.suggest ? JSON.stringify(body.suggest) : null,
         body.status ?? null,
         body.treatment_items ? JSON.stringify(body.treatment_items) : null,
         body.treatment_detail ? JSON.stringify(body.treatment_detail) : null,
+        body.after_status ?? null,
       ],
     );
     return NextResponse.json({ success: true, id });
@@ -111,7 +114,7 @@ export async function PUT(req: NextRequest) {
      location=?, pain_assesment=?, characteristic=?, Duration=?, frequence=?,
      barthel=?, physical_exam=?, treatmentPlan=?, short_goal=?, long_goal=?,
      assesment=?, fall_risk=?, fall_risk_items=?, vital_signs=?, chief=?,
-     therapist=?, suggest=?, status=?, treatment_items=?, treatment_detail=?
+     therapist=?, suggest=?, status=?, treatment_items=?, treatment_detail=?, after_status=?
      WHERE id=?`,
       [
         body.type ?? null,
@@ -146,6 +149,7 @@ export async function PUT(req: NextRequest) {
         body.status ?? null,
         body.treatment_items ? JSON.stringify(body.treatment_items) : null,
         body.treatment_detail ? JSON.stringify(body.treatment_detail) : null,
+        body.after_status ?? null,
         id,
       ],
     );

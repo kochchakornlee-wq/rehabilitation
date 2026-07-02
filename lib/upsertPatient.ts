@@ -13,27 +13,25 @@ export async function upsertPatient(
 ) {
   if (!patientInfo?.hn) return;
   await db.query(
-    `
-    INSERT INTO patients 
-      (hn, name, dob, gender, allergies, patient_type, visit_type, last_synced_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-    ON DUPLICATE KEY UPDATE
-      name           = VALUES(name),
-      dob            = VALUES(dob),
-      gender         = VALUES(gender),
-      allergies      = VALUES(allergies),
-      patient_type   = VALUES(patient_type),
-      visit_type     = VALUES(visit_type),
-      last_synced_at = NOW()
-  `,
+    `INSERT INTO patients 
+     (hn, name, birthdate, gender, allergies, patient_type, visit_type, last_visit)
+   VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())
+   ON DUPLICATE KEY UPDATE
+     name         = VALUES(name),
+     birthdate    = VALUES(birthdate),
+     gender       = VALUES(gender),
+     allergies    = VALUES(allergies),
+     patient_type = COALESCE(VALUES(patient_type), patient_type),
+     visit_type   = CASE WHEN visit_type IS NULL THEN 'New' ELSE 'Old' END,
+     last_visit   = CURDATE()`,
     [
       patientInfo.hn,
-      patientInfo.name,
-      patientInfo.dob,
-      patientInfo.gender,
-      patientInfo.allergies,
-      patientInfo.patient_type,
-      patientInfo.visit_type,
+      patientInfo.name ?? null,
+      patientInfo.dob ?? null,
+      patientInfo.gender ?? null,
+      patientInfo.allergies ?? null,
+      patientInfo.patient_type ?? null,
+      patientInfo.visit_type ?? null,
     ],
   );
 }

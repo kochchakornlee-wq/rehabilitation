@@ -248,6 +248,13 @@ export default function TimeUp() {
       const body = {
         patient_hn: patientHN,
         patient_name: patientName,
+        patientInfo: {
+          hn: patientHN,
+          name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+          gender: patientGender,
+          dob: patientBirth,
+          allergies: patientAllergy,
+        },
         assessment_date: date || null,
         assessment_time: time || null,
         assessment_type: type || null,
@@ -258,6 +265,7 @@ export default function TimeUp() {
         assistive_device: device || null,
         return_direction: direction || null,
         visual_aids: otherVisual || null,
+        status: "saved",
       };
 
       const res = await fetch("/api/tug", {
@@ -301,6 +309,7 @@ export default function TimeUp() {
         assistive_device: device || null,
         return_direction: direction || null,
         visual_aids: otherVisual || null,
+        status: "draft",
       };
 
       await fetch("/api/tug", {

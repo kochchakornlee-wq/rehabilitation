@@ -405,6 +405,13 @@ export default function CaAssessmentPage() {
       const body = {
         hn: patientHN,
         patient_name: patientName,
+        patientInfo: {
+          hn: patientHN,
+          name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+          gender: patientGender,
+          dob: patientBirth,
+          allergies: patientAllergy,
+        },
         assessment_mode: mode,
         assessed_at: assessDate,
         assessed_time: assessTime,
@@ -577,6 +584,7 @@ export default function CaAssessmentPage() {
       const body = {
         hn: patientHN,
         patient_name: patientName,
+        status: "draft",
         assessment_mode: mode,
         assessed_at: assessDate,
         assessed_time: assessTime,

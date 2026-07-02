@@ -135,7 +135,7 @@ export default function AuthPage() {
 
   const handleForgotSubmit = () => {
     if (!forgotUsername.trim()) return;
-    setForgotStep("confirm"); // ไปขั้นตอน confirm ก่อน
+    setForgotStep("confirm");
   };
 
   const handleForgotConfirm = async () => {
@@ -241,16 +241,18 @@ export default function AuthPage() {
     >
       <video
         style={{
-          position: "fixed",
+          position: "absolute",
           inset: 0,
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          zIndex: -1,
+          zIndex: 0,
+          opacity: 0.5,
         }}
         autoPlay
         loop
         muted
+        playsInline
       >
         <source src="/background-2.mp4" type="video/mp4" />
       </video>

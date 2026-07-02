@@ -603,6 +603,13 @@ export default function KoosPage() {
     const payload: Record<string, unknown> = {
       ipd_form_id: ipdFormId,
       hn: patientHN,
+      patientInfo: {
+        hn: patientHN,
+        name: patientName, // ดึงจาก state ที่ได้จาก HIS API
+        gender: patientGender,
+        dob: patientBirth,
+        allergies: patientAllergy,
+      },
       assessment_type: assessmentType,
       assessed_at: assessedAt,
       assessed_by: doctor || null,

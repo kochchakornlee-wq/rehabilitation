@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
 
   await pool.query(
     `INSERT INTO tug_assessments
-     (id, patient_hn, patient_name, assessment_date, assessment_time,
-      assessment_type, physiotherapist, walking_ability, time_to_complete,
-      safety_classification, assistive_device, return_direction, visual_aids)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+ (id, patient_hn, patient_name, assessment_date, assessment_time,
+  assessment_type, physiotherapist, walking_ability, time_to_complete,
+  safety_classification, assistive_device, return_direction, visual_aids, status)
+ VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       body.patient_hn ?? null,
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       body.assistive_device ?? null,
       body.return_direction ?? null,
       body.visual_aids ?? null,
+      body.status ?? "saved", // ← เพิ่ม
     ],
   );
 
@@ -57,10 +58,11 @@ export async function PUT(req: NextRequest) {
 
   await pool.query(
     `UPDATE tug_assessments SET
-     patient_name=?, assessment_date=?, assessment_time=?, assessment_type=?,
-     physiotherapist=?, walking_ability=?, time_to_complete=?,
-     safety_classification=?, assistive_device=?, return_direction=?, visual_aids=?
-     WHERE id=?`,
+ patient_name=?, assessment_date=?, assessment_time=?, assessment_type=?,
+ physiotherapist=?, walking_ability=?, time_to_complete=?,
+ safety_classification=?, assistive_device=?, return_direction=?, visual_aids=?,
+ status=?
+ WHERE id=?`,
     [
       body.patient_name ?? null,
       body.assessment_date ?? null,
@@ -73,6 +75,7 @@ export async function PUT(req: NextRequest) {
       body.assistive_device ?? null,
       body.return_direction ?? null,
       body.visual_aids ?? null,
+      body.status ?? "saved",
       id,
     ],
   );
